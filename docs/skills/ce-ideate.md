@@ -67,19 +67,23 @@ Each surviving candidate carries a tagged basis: `direct:` (quoted evidence), `e
 
 Six parallel sub-agents, each biased toward a different generative frame: pain & friction, inversion/removal/automation, assumption-breaking, leverage & compounding, cross-domain analogy, and constraint-flipping. Single-prompt ideation collapses into the agent's most-trained directions — different frames force genuine breadth, especially cross-domain analogy and constraint-flipping which surface ideas no single prompt would.
 
-### 4. Adversarial filtering with stated rejection reasons
+### 4. Topic-surface decomposition — axis coverage as a dispatch invariant
+
+Frames decide *how to think* about a topic; **axes** decide *what part of the topic to think on*. Before frame dispatch, the orchestrator decomposes the topic into 3-5 orthogonal axes derived from grounding (e.g., for "social sharing" — send, discovery, arrival, compounding, actor types). Each frame is then instructed to spread its ideas across axes, and an axis-coverage check after generation catches blind spots — if any axis has zero ideas, a bounded recovery dispatch fills it. The failure mode this prevents: six lenses converging on the most salient interpretation of a topic and missing the rest of its surface entirely. Atomic topics (a name, a tagline) and surprise-me runs skip decomposition cleanly.
+
+### 5. Adversarial filtering with stated rejection reasons
 
 The orchestrator critiques every candidate against a consistent rubric — groundedness, basis strength, expected value, novelty, pragmatism, leverage, implementation burden, overlap. One-line reasons accompany every rejection. Survivors are presented alongside a rejection summary so you see what was considered and cut.
 
-### 5. Three modes — software, software-product, and entirely non-software
+### 6. Three modes — software, software-product, and entirely non-software
 
 The same generate-critique-survive mechanism runs across very different topic domains: things in your codebase, software products outside your repo (pages, apps, flows), or topics with no software surface at all (naming, narrative, personal decisions, business strategy). In non-software mode, a domain-agnostic facilitator takes over — same six frames, same basis requirement, same critique, but in domain-native language.
 
-### 6. Surprise-me mode — no subject required
+### 7. Surprise-me mode — no subject required
 
 `/ce-ideate "surprise me"` skips the subject step entirely. Sub-agents discover their own subjects from grounding material. Different frames finding different subjects is the feature, not a bug — cross-cutting combinations across discovered subjects often produce the strongest ideas.
 
-### 7. Issue-tracker intent
+### 8. Issue-tracker intent
 
 Phrases like "what users are reporting" or "biggest issue patterns" trigger an issue-intelligence agent that pulls real GitHub issues and feeds clustered themes into the ideation frames.
 

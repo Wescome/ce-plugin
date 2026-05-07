@@ -23,7 +23,9 @@ Rejection criteria:
 - **subject-replacement** (abandons or replaces the subject of ideation rather than operating on it — e.g., "pivot to an unrelated domain," "become a different organization")
 - **scope overrun** (expands beyond the asked scope rather than ideating within it — e.g., proposes changes to the whole product when the user asked about one flow, stage, or section). Allowed only when the basis explicitly justifies the expansion; default is reject or downgrade.
 
-Score survivors using a consistent rubric weighing: groundedness in stated context, **basis strength** (`direct:` > `external:` > `reasoned:`; none excluded, but direct-evidence ideas score higher all else equal), expected value, novelty, pragmatism, leverage on future work, implementation burden, and overlap with stronger ideas.
+Score survivors using a consistent rubric weighing: groundedness in stated context, **basis strength** (`direct:` > `external:` > `reasoned:`; none excluded, but direct-evidence ideas score higher all else equal), expected value, novelty, pragmatism, leverage on future work, implementation burden, overlap with stronger ideas, and **axis spread** (when Phase 1.5 produced an axis list) — survivor sets that cover the topic's surface outscore sets that cluster on one axis, all else equal.
+
+**Axis coverage as a list-level concern.** When axes were defined, axis spread is evaluated across the survivor set, not per-idea. After per-idea filtering, check the survivor set: if axis coverage is uneven and stronger candidates exist on under-represented axes, prefer the spread when promoting borderline candidates. Phase 2's recovery dispatch should already have surfaced candidates for empty axes; this is a polish step on the survivor selection. If an axis ends up with zero survivors despite recovery (or because recovery hit the 2-axis cap), note it in the rejection summary as a deliberate gap rather than an oversight.
 
 Target output:
 - keep 5-7 survivors by default
@@ -40,6 +42,7 @@ Present only the surviving ideas in structured form:
 
 - title
 - description
+- **axis** (when Phase 1.5 produced an axis list)
 - **basis** (tagged `direct:` / `external:` / `reasoned:`, with the quoted evidence, cited source, or written-out argument)
 - rationale (how the basis connects to the move's significance)
 - downsides
@@ -90,10 +93,14 @@ mode: <repo-grounded | elsewhere-software | elsewhere-non-software>
 ## Grounding Context
 [Grounding summary from Phase 1 — labeled "Codebase Context" in repo mode, "Topic Context" in elsewhere mode]
 
+## Topic Axes
+[3-5 axes from Phase 1.5, one per line, OR a single line `Decomposition skipped — atomic subject` / `Decomposition skipped — surprise-me mode` when Phase 1.5 was skipped. Omit this section entirely if not applicable.]
+
 ## Ranked Ideas
 
 ### 1. <Idea Title>
 **Description:** [Concrete explanation]
+**Axis:** [Topic axis this idea targets — omit when decomposition was skipped]
 **Basis:** [`direct:` / `external:` / `reasoned:` — quoted, cited, or written-out argument]
 **Rationale:** [How the basis connects to the move's significance]
 **Downsides:** [Tradeoffs or costs]
@@ -106,6 +113,9 @@ mode: <repo-grounded | elsewhere-software | elsewhere-non-software>
 | # | Idea | Reason Rejected |
 |---|------|-----------------|
 | 1 | <Idea> | <Reason rejected> |
+
+[When applicable, append axis-coverage gaps as their own rows so the gap is visible:]
+| - | axis: <name> | recovery skipped (cap reached) — no survivors on this axis |
 ```
 
 If resuming:
@@ -231,6 +241,7 @@ Before finishing, check:
 - **every surviving idea has an articulated basis** (`direct:`, `external:`, or `reasoned:`) that actually supports the claimed move — speculation dressed as ambition was rejected, with reasons
 - **every surviving idea passes the meeting-test** unless Phase 0.5 detected tactical focus signals that waived the floor
 - **no surviving idea replaces the subject** rather than operating on it
+- when Phase 1.5 produced an axis list, the survivor set spreads across axes rather than clustering on one — and any axis with zero survivors is noted as a deliberate gap in the rejection summary, not silently absent
 - the candidate list was generated before filtering
 - the original many-ideas -> critique -> survivors mechanism was preserved
 - if sub-agents were used, they improved diversity without replacing the core workflow
