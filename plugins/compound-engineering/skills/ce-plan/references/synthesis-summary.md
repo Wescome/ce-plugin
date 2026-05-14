@@ -65,7 +65,11 @@ Form within each section (prose, bullets, mix) follows whatever communicates bes
 
 - **No "Stated" bucket in chat** (the orientation or scope-claim covers it).
 - **No "Out of scope" bucket as a separate list** — fold a non-obvious exclusion into a call-out when it survives the keep test, otherwise drop it.
-- **Source-document vocabulary.** When a brainstorm exists, use its terms. Don't invent agent-coded shorthand (e.g., "skill-instruction shape", "hooks engine selection at Step 2a entry"). Before emitting the synthesis, scan for bare ID references — `AE\d+`, `R\d+`, `F\d+`, `A\d+`, `U\d+` — and replace with plain names. `AE4` forces the user to flip back to the brainstorm; "the install-prompt acceptance case" does not. Mixed forms (naming the case AND citing the AE number) still violate the rule because the ID adds noise without information.
+- **Source-document vocabulary.** When a brainstorm exists, use its terms. Don't invent agent-coded shorthand (e.g., "skill-instruction shape", "hooks engine selection at Step 2a entry"). When referencing acceptance examples, requirements, or flows, name them in plain terms ("the install-prompt acceptance case") — never use bare IDs.
+
+- **Pre-emit mechanical checks.** Before emitting the synthesis, scan the output:
+  - **Bare ID references** (`AE\d+`, `R\d+`, `F\d+`, `A\d+`, `U\d+`) → replace with plain names. Mixed forms (case named AND ID cited) still violate the rule because the ID adds noise without information.
+  - **File paths** (`path/like.md`, `path/like.py`, `internal/cli/...`, `skills/.../...`, etc.) → cut unless the path IS the topic of an explicit fork in the call-outs. Allowed: "cleanup hook in the existing archive step vs. a new dedicated phase" (where the path is implicit in the decision). Forbidden: paths listed to demonstrate completeness, preview Implementation Units, or describe where the implementation reaches. The synthesis names *what* the plan targets, not *where* the code lives.
 
 ### The keep test for each call-out
 
