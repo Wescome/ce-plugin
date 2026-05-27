@@ -248,7 +248,11 @@ contracts — the agent picks shapes that fit the content.
   paragraphs. Optionally precede with an eyebrow label (small-caps tag
   above the title) for editorial polish.
 - **Requirements** — `<table>` is the default at 5+ uniform items;
-  bullets at smaller counts. Each row has the R-ID as visible text in
+  bullets at smaller counts. Concern-grouping takes precedence over the
+  flat-table default: when requirements span distinct concerns, group them
+  under bold inline headers (or per-group sections) first, then apply the
+  5+ table default *within* each group rather than flattening the whole
+  section into one table. Each row has the R-ID as visible text in
   its own column. Consider adding a "covered by" column for reverse
   traceability when ID-anchored items have downstream references in
   the same doc.

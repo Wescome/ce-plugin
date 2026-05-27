@@ -66,8 +66,12 @@ When a doc is warranted, these are present.
   "Migration and compatibility" / "Contributor workflow"), group them
   under bold inline headers within the Requirements section — group by
   capability or concern, not by the order requirements were discussed.
-  R-IDs stay continuous across groups (R1, R2 in the first group; R3, R4
-  in the second; never restart at R1 per group).
+  The trigger is distinct concerns, not item count — even four
+  requirements benefit if they cover three different topics. Skip
+  grouping only when all requirements are genuinely about the same thing;
+  a long flat list is a smell that subgroups were missed. R-IDs stay
+  continuous across groups (R1, R2 in the first group; R3, R4 in the
+  second; never restart at R1 per group).
 
 ## Include when material
 
@@ -145,7 +149,8 @@ The agent also picks per artifact:
 - How much depth each present section gets
 
 (Requirements grouping is covered above in the Hard Floor item — group by
-concern when they span distinct areas, with continuous R-IDs across groups.)
+concern by default, rendering a flat list only when all requirements are
+about the same thing, with continuous R-IDs across groups.)
 
 ## Brainstorm metadata fields
 
