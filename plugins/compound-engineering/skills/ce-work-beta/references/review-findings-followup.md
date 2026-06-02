@@ -4,11 +4,22 @@ Load this reference when Tier 2 `ce-code-review` has finished and **ce-work-beta
 
 `ce-code-review` is **review-only** — it reports findings and writes artifacts; it does not mutate the checkout, commit, push, or file tickets. **The caller owns apply/fix policy.**
 
-## Invoke review (Step 1 — do not skip)
+## Consume the completed review (do not re-run it)
 
-Invoke the skill explicitly. Do not treat a casual "review my changes" prompt as a substitute unless the harness routed it to `ce-code-review`.
+This reference loads **after** review has run. In the ce-work-beta Tier 2 path, step 2a already invoked `ce-code-review`; this apply step **consumes that output** — do not start a second review, which would waste reviewer dispatches and risk overwriting the artifact the Residual Work Gate reconciles.
 
-**Recommended for ce-work-beta (orchestrated shipping):**
+Reuse the review output already in hand:
+
+- Parsed JSON (`status`, `actionable_findings`, `findings`, `artifact_path`, `run_id`) **or** the markdown Actionable Findings summary captured by the caller
+- Run artifact dir: `/tmp/compound-engineering/ce-code-review/<run-id>/` (`review.json`, per-reviewer JSON for `why_it_matters`)
+
+If `status` is `failed`, stop shipping and surface `reason`. If `degraded`, note partial reviewer coverage before applying anything.
+
+### Fallback — invoke review only for cold callers
+
+Only when the caller reached this file **without** already running review (no review output in hand): invoke `ce-code-review` once, then proceed to apply. Do not invoke when the caller already ran review (e.g., ce-work-beta Tier 2 step 2a).
+
+Invoke the skill explicitly — do not treat a casual "review my changes" prompt as a substitute unless the harness routed it to `ce-code-review`.
 
 ```
 ce-code-review mode:agent plan:<plan-path> base:<merge-base-or-ref>
@@ -16,19 +27,12 @@ ce-code-review mode:agent plan:<plan-path> base:<merge-base-or-ref>
 
 - `mode:agent` — JSON output (`review.json` + primary JSON response) for programmatic parsing; same review pipeline as default.
 - `plan:` — when Phase 1 used a plan file (requirements completeness).
-- `base:` — when you already resolved the diff base on the current checkout; omit when reviewing a PR number/URL or standalone current branch.
+- `base:` — when the diff base is already resolved on the current checkout; omit when reviewing a PR number/URL or standalone current branch.
 - Do **not** pass deprecated `mode:autofix`.
 
-**Human / interactive shipping:** invoke `ce-code-review` without `mode:agent` if markdown tables are preferred.
+For human / interactive shipping, invoke `ce-code-review` without `mode:agent` if markdown tables are preferred. Capture the same JSON / Actionable Findings and artifact dir listed above before applying.
 
-After review completes, capture:
-
-- Parsed JSON (`status`, `actionable_findings`, `findings`, `artifact_path`, `run_id`) **or** the markdown Actionable Findings summary
-- Run artifact dir: `/tmp/compound-engineering/ce-code-review/<run-id>/` (`review.json`, per-reviewer JSON for `why_it_matters`)
-
-If `status` is `failed`, stop shipping and surface `reason`. If `degraded`, note partial reviewer coverage before applying anything.
-
-## Inputs for apply (Step 2)
+## Inputs for apply
 
 - `actionable_findings` from JSON, or the Actionable Findings section from markdown
 - Full finding detail when needed: `review.json` / artifact `findings`, or `{reviewer}.json` for `why_it_matters` and `evidence`

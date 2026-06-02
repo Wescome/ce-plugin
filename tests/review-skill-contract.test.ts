@@ -537,7 +537,10 @@ describe("ce-code-review contract", () => {
     const skill = await readRepoFile("plugins/compound-engineering/skills/ce-work/SKILL.md")
     expect(followup).toContain("review-only")
     expect(followup).toContain("suggested_fix")
-    expect(followup).toContain("Invoke review")
+    // The apply followup consumes the review the caller already ran; re-invocation is a
+    // cold-caller fallback only (it must not start a second review in the ce-work Tier 2 path).
+    expect(followup).toMatch(/consume the completed review/i)
+    expect(followup).toMatch(/invoke[^\n]*review[^\n]*cold caller/i)
     expect(followup).toMatch(/does not investigate findings/i)
     expect(followup).toMatch(/Group by `file`/i)
     expect(followup).toMatch(/batch/i)
