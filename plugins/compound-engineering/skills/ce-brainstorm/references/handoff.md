@@ -61,7 +61,7 @@ Selections may be the literal option label (when the user types the label or a c
 
 **If user selects "Plan implementation with `ce-plan` (Recommended)":**
 
-Immediately load the `ce-plan` skill in the current session. Pass the requirements document path when one exists; otherwise pass a concise summary of the finalized brainstorm decisions. Do not print the closing summary first.
+Immediately load the `ce-plan` skill in the current session. Pass the requirements document path when one exists; otherwise pass a concise summary of the finalized brainstorm decisions. When the Phase 1.1 grounding scout produced a dossier and the file still exists, also pass its path (`/tmp/compound-engineering/ce-brainstorm/<run-id>/grounding.md`) — it gives planning verified quotes with `file:line` pointers to start from instead of re-scanning the repo. Do not print the closing summary first.
 
 **If user selects "Agent review of requirements doc with `ce-doc-review`":**
 
