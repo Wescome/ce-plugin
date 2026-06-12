@@ -19,7 +19,12 @@ import { parseFrontmatter } from "../src/utils/frontmatter"
  *      - Fenced code blocks are stripped before scanning. Teaching samples,
  *        message templates, and anti-pattern demos live in fences (e.g.,
  *        ce-demo-reel's `![Before](url-1)` PR template), and fences are where
- *        skills quote code they are ABOUT rather than files they USE.
+ *        skills quote code they are ABOUT rather than files they USE. This
+ *        fence policy is Rule-1-specific — Rule 2 deliberately differs (see
+ *        below): self-containment looks for ESCAPING references, which in
+ *        fences are overwhelmingly quoted anti-patterns, while reference
+ *        integrity looks for LOCAL paths, which in fences are overwhelmingly
+ *        real script invocations.
  *      - Markdown link/image targets are treated as real references. A target
  *        is a violation when it is absolute (`/...`, `~/...`) or when it
  *        resolves outside the skill directory under BOTH file-relative and
@@ -36,12 +41,22 @@ import { parseFrontmatter } from "../src/utils/frontmatter"
  * 2. REFERENCE INTEGRITY (AGENTS.md "File References in Skills"): every
  *    skill-local path mentioned in a skill's markdown must exist on disk
  *    INSIDE the skill directory. Candidates are (a) relative markdown link
- *    targets and (b) `references/...`, `scripts/...`, or `assets/...` path
- *    tokens inside backtick code spans — whether the span IS the path
- *    (`scripts/run.sh`) or embeds it in a command (`bash scripts/run.sh ARG`,
- *    `python3 scripts/foo.py <arg>`), so a deleted or renamed script is
- *    caught even when mentioned only as an executable command. A candidate
- *    passes when it resolves
+ *    targets outside fences, (b) `references/...`, `scripts/...`, or
+ *    `assets/...` path tokens inside backtick code spans — whether the span
+ *    IS the path (`scripts/run.sh`) or embeds it in a command
+ *    (`bash scripts/run.sh ARG`, `python3 scripts/foo.py <arg>`), so a
+ *    deleted or renamed script is caught even when mentioned only as an
+ *    executable command — and (c) the same path tokens inside FENCED code
+ *    blocks. (c) is where this rule's fence policy deliberately diverges
+ *    from Rule 1: fenced bash blocks are where skills put their REAL bundled
+ *    script invocations (ce-clean-gone-branches' `bash scripts/clean-gone`),
+ *    so stripping fences here would let a deleted or renamed script pass CI
+ *    while the skill fails at runtime. Markdown-link syntax inside fences is
+ *    still NOT a candidate — fenced `[text](references/x.md)` is teaching
+ *    material, and its parentheses/brackets fail the bare-token shape — and
+ *    backticks within fenced lines act as token separators so inline-code
+ *    path mentions in fenced pseudocode tokenize cleanly. A candidate passes
+ *    when it resolves
  *    inside the skill directory (anchored at the skill root or at the
  *    containing file's directory) AND exists there. Resolution is contained
  *    BEFORE any existence check: a `..` candidate that escapes the skill is
@@ -163,32 +178,43 @@ function listMarkdownFiles(dir: string): string[] {
 // Scanning helpers (pure; unit-tested at the bottom of this file)
 // ---------------------------------------------------------------------------
 
+type Located = { lineNumber: number; value: string }
+
 /**
- * Blanks out fenced code blocks (``` / ~~~, any fence length >= 3) while
- * preserving line numbers. Outer fences longer than three backticks (e.g.,
- * ````markdown teaching blocks) correctly swallow shorter inner fences.
+ * Partitions markdown around fenced code blocks (``` / ~~~, any fence length
+ * >= 3): `prose` is the input with fences blanked (line numbers preserved),
+ * `fencedLines` are the in-fence lines with their line numbers. Outer fences
+ * longer than three backticks (e.g., ````markdown teaching blocks) correctly
+ * swallow shorter inner fences. Rule 1 scans only `prose`; Rule 2 scans both
+ * sides — sharing one fence state machine keeps the two policies from
+ * drifting on fence-parsing edge cases.
  */
-function stripFencedCodeBlocks(markdown: string): string {
+function partitionFencedCodeBlocks(markdown: string): { prose: string; fencedLines: Located[] } {
   const lines = markdown.split("\n")
   let fence: { char: string; len: number } | null = null
-  const out = lines.map((line) => {
+  const fencedLines: Located[] = []
+  const prose = lines.map((line, i) => {
     const match = line.match(/^\s*(`{3,}|~{3,})/)
     if (match) {
       const char = match[1][0]
       const len = match[1].length
-      if (!fence) {
-        fence = { char, len }
-        return ""
-      }
-      if (fence.char === char && len >= fence.len) fence = null
+      if (!fence) fence = { char, len }
+      else if (fence.char === char && len >= fence.len) fence = null
       return ""
     }
-    return fence ? "" : line
+    if (fence) {
+      fencedLines.push({ lineNumber: i + 1, value: line })
+      return ""
+    }
+    return line
   })
-  return out.join("\n")
+  return { prose: prose.join("\n"), fencedLines }
 }
 
-type Located = { lineNumber: number; value: string }
+/** Blanks out fenced code blocks while preserving line numbers. */
+function stripFencedCodeBlocks(markdown: string): string {
+  return partitionFencedCodeBlocks(markdown).prose
+}
 
 function lineNumberAt(text: string, index: number): number {
   return text.slice(0, index).split("\n").length
@@ -206,25 +232,49 @@ function extractMarkdownLinkTargets(markdown: string): Located[] {
 }
 
 /**
- * Extracts skill-local path tokens (references/, scripts/, assets/) from
- * backtick code spans. The span may BE the path (`scripts/run.sh`) or embed
- * it in a command (`bash scripts/run.sh ARG`, `python3 scripts/foo.py <arg>`):
- * each whitespace-delimited token matching the path shape is extracted, so a
- * deleted or renamed script is caught even when mentioned only as an
- * executable command. The token character class excludes template placeholder
- * characters, so placeholder-bearing path tokens (`scripts/<name>`) are
- * skipped by construction while placeholder ARGUMENTS after a clean path
- * token do not suppress it.
+ * The skill-local path-token shape (references/, scripts/, assets/). The
+ * character class excludes template placeholder characters, so
+ * placeholder-bearing path tokens (`scripts/<name>`) are skipped by
+ * construction while placeholder ARGUMENTS after a clean path token do not
+ * suppress it.
+ */
+const LOCAL_PATH_TOKEN = /^(references|scripts|assets)\/[A-Za-z0-9._/-]+$/
+
+/** Whitespace-delimited tokens of `text` matching the skill-local path shape. */
+function localPathTokensIn(text: string): string[] {
+  return text.split(/\s+/).filter((token) => LOCAL_PATH_TOKEN.test(token))
+}
+
+/**
+ * Extracts skill-local path tokens from backtick code spans. The span may BE
+ * the path (`scripts/run.sh`) or embed it in a command (`bash scripts/run.sh
+ * ARG`, `python3 scripts/foo.py <arg>`): each whitespace-delimited token
+ * matching the path shape is extracted, so a deleted or renamed script is
+ * caught even when mentioned only as an executable command.
  */
 function extractLocalPathCodeSpans(markdown: string): Located[] {
   const out: Located[] = []
   const spanRegex = /`([^`\n]+)`/g
-  const pathToken = /^(references|scripts|assets)\/[A-Za-z0-9._/-]+$/
   let match: RegExpExecArray | null
   while ((match = spanRegex.exec(markdown)) !== null) {
     const lineNumber = lineNumberAt(markdown, match.index)
-    for (const token of match[1].split(/\s+/)) {
-      if (pathToken.test(token)) out.push({ lineNumber, value: token })
+    for (const token of localPathTokensIn(match[1])) out.push({ lineNumber, value: token })
+  }
+  return out
+}
+
+/**
+ * Extracts skill-local path tokens from INSIDE fenced code blocks (the Rule 2
+ * fence policy — see the header). Backticks within a fenced line are treated
+ * as token separators so inline-code path mentions in fenced pseudocode
+ * (`see \`references/x.md\``) tokenize cleanly; markdown-link syntax never
+ * yields a candidate because its brackets/parentheses fail the token shape.
+ */
+function extractFencedLocalPathTokens(markdown: string): Located[] {
+  const out: Located[] = []
+  for (const { lineNumber, value } of partitionFencedCodeBlocks(markdown).fencedLines) {
+    for (const token of localPathTokensIn(value.replace(/`/g, " "))) {
+      out.push({ lineNumber, value: token })
     }
   }
   return out
@@ -301,6 +351,10 @@ function extractLocalReferenceCandidates(markdown: string): Located[] {
   for (const span of extractLocalPathCodeSpans(stripped)) {
     if (isTemplatePlaceholderPath(span.value)) continue
     out.push(span)
+  }
+  for (const token of extractFencedLocalPathTokens(markdown)) {
+    if (isTemplatePlaceholderPath(token.value)) continue
+    out.push(token)
   }
   return out
 }
@@ -611,6 +665,40 @@ describe("extractLocalPathCodeSpans", () => {
   })
 })
 
+describe("extractFencedLocalPathTokens", () => {
+  test("extracts a real script invocation from a fenced bash block", () => {
+    const sample = "intro\n```bash\nbash scripts/clean-gone\n```\nafter"
+    expect(extractFencedLocalPathTokens(sample)).toEqual([
+      { lineNumber: 3, value: "scripts/clean-gone" },
+    ])
+  })
+
+  test("treats backticks inside fenced lines as token separators", () => {
+    const sample = "```\n(see `references/codex-delegation-workflow.md`)\n```"
+    expect(extractFencedLocalPathTokens(sample).map((t) => t.value)).toEqual([
+      "references/codex-delegation-workflow.md",
+    ])
+  })
+
+  test("skips placeholder-bearing tokens, platform-variable paths, and markdown-link syntax", () => {
+    const sample = [
+      "```bash",
+      "bash scripts/<name>",
+      'bash "${CLAUDE_SKILL_DIR}/scripts/upstream-version.sh"',
+      "```",
+      "```markdown",
+      "[guide](references/guide.md)",
+      "![Before](url-1)",
+      "```",
+    ].join("\n")
+    expect(extractFencedLocalPathTokens(sample)).toEqual([])
+  })
+
+  test("ignores path tokens outside fences (those belong to the code-span extractor)", () => {
+    expect(extractFencedLocalPathTokens("run `scripts/run.sh` in prose")).toEqual([])
+  })
+})
+
 describe("escapesSkillDir", () => {
   test("flags ../ traversal out of the skill from SKILL.md", () => {
     expect(escapesSkillDir("../other-skill/references/schema.yaml", "")).toBe(true)
@@ -678,6 +766,28 @@ describe("extractLocalReferenceCandidates", () => {
     const sample =
       "```\n![Before](url-1)\n```\n[t](references/<topic>.md) [u](https://x.dev) [v](/abs/file.md)"
     expect(extractLocalReferenceCandidates(sample)).toEqual([])
+  })
+
+  test("includes fenced script invocations: an existing script passes, a missing one is caught", () => {
+    // Extraction is what makes a fenced mention visible to the existence
+    // check; resolution + statSync against the real skill then demonstrates
+    // the pass/caught split the repo scan enforces.
+    const sample = "```bash\nbash scripts/clean-gone\nbash scripts/deleted-tool.sh\n```"
+    expect(extractLocalReferenceCandidates(sample).map((c) => c.value)).toEqual([
+      "scripts/clean-gone",
+      "scripts/deleted-tool.sh",
+    ])
+    const skillRoot = path.join(PLUGINS_ROOT, "compound-engineering", "skills", "ce-clean-gone-branches")
+    const existing = resolveInsideSkill(skillRoot, skillRoot, "scripts/clean-gone")
+    const missing = resolveInsideSkill(skillRoot, skillRoot, "scripts/deleted-tool.sh")
+    expect(existing).not.toBeNull()
+    expect(statSync(existing!).isFile()).toBe(true)
+    expect(missing).not.toBeNull()
+    expect(() => statSync(missing!)).toThrow()
+  })
+
+  test("skips fenced placeholder-bearing path tokens", () => {
+    expect(extractLocalReferenceCandidates("```bash\nbash scripts/<generated-name>\n```")).toEqual([])
   })
 })
 
