@@ -274,17 +274,22 @@ When dispatching sub-agents, **omit the `mode` parameter** on the Agent/Task too
 
 Plugin config lives at `.compound-engineering/config.local.yaml` in the repo root. This file is gitignored (machine-local settings), which creates two gotchas:
 
-1. **Path resolution:** Never read the config relative to CWD — the user may invoke a skill from a subdirectory. Always resolve from the repo root. In pre-resolution commands, use `git rev-parse --show-toplevel` to find the root.
+1. **Path resolution:** Never read the config relative to CWD — the user may invoke a skill from a subdirectory. Always resolve from the repo root using `git rev-parse --show-toplevel`.
 
-2. **Worktrees:** Gitignored files are per-worktree. A config file created in the main checkout does not exist in worktrees. Use `--show-toplevel` to find the root:
-   ```
-   !`cat "$(git rev-parse --show-toplevel 2>/dev/null)/.compound-engineering/config.local.yaml" 2>/dev/null || echo '__NO_CONFIG__'`
-   ```
-   Outside a git repo, `git rev-parse` emits empty and `cat "/.compound-engineering/config.local.yaml"` fails (permission denied or not found, suppressed by `2>/dev/null`), so the `__NO_CONFIG__` sentinel fires. Note: the previous pattern used `(top=$(...); [ -n "$top" ] && cat "$top/...")` with a semicolon to guard the empty-root case, but `;` is rejected by Claude Code's safety checker as `Unhandled node type: ;` (see Pre-resolution exception above) and must not be used in `!` pre-resolution.
+2. **Worktrees:** Gitignored files are per-worktree. A config file created in the main checkout does not exist in worktrees. `--show-toplevel` returns the current worktree path, so config from the main checkout is not found from a worktree. This is acceptable — config is optional and users who work from worktrees can add a config file there.
 
-   Note: in a worktree, `--show-toplevel` returns the worktree path, so config from the main checkout will not be found. This is acceptable — config is optional and users who work from worktrees can add a config file there. A previous pattern used `git-common-dir` with `${common%/.git}` to derive the main repo root as a fallback, but bash parameter expansion operators are rejected as "Contains expansion" (see Pre-resolution exception above), so that approach is no longer viable without a script.
+**Blessed pattern — pre-resolve only the repo root, then read the file in the skill body:**
+```
+!`git rev-parse --show-toplevel 2>/dev/null || true`
+```
+In the skill body: if the pre-resolved line is an absolute path, use it as `<repo-root>`; if it is empty or still shows a backtick command string, resolve `<repo-root>` at runtime by running `git rev-parse --show-toplevel` with the shell tool, then read `<repo-root>/.compound-engineering/config.local.yaml` with the native file-read tool (Read in Claude Code, read_file in Codex). The runtime fallback is load-bearing: `!` pre-resolution is Claude-Code-only and is **not** translated by the converters (`transformContentForCodex` and the other target writers copy `!`cmd`` through as literal text), so on Codex/Gemini/Pi/OpenCode the line is unresolved and the agent must derive the root itself — otherwise config is silently ignored on every non-Claude platform. Only when the root cannot be resolved (not a git repo) or the file is missing is it "no config" → fall through to defaults; never fail or block on missing config. (This mirrors the `ce-sessions` pre-resolution fallback.)
 
-If neither path has the file, fall through to defaults — never fail or block on missing config.
+**Do NOT read the config contents inside the `!` pre-resolution itself.** Two earlier forms are now rejected and enforced against by `tests/skill-shell-safety.test.ts`:
+
+- `` !`cat "$(git rev-parse --show-toplevel 2>/dev/null)/.compound-engineering/config.local.yaml" 2>/dev/null || echo '__NO_CONFIG__'` `` aborts skill load on environments whose permission checker rejects `$()` command substitution (reported on Windows / CC 2.1.63 in issue #920).
+- The `(top=$(...); cat "$top/...")` subshell variant is worse: `;` is rejected as `Unhandled node type: ;` (issue #758), even inside a subshell.
+
+The blessed pattern sidesteps both: a bare `git rev-parse` first token has no `$()`, no `;`, and matches common allow rules, while the config contents are read with a native tool at runtime (no skill-load checker involved). A previous worktree fallback that derived the main repo root via `git-common-dir` with `${common%/.git}` is also unavailable — parameter expansion operators are rejected as "Contains expansion" (see Pre-resolution exception above).
 
 ### Quick Validation Command
 
