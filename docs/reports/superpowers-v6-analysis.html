@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What Superpowers v6 Teaches Compound Engineering</title>
+<style>
+  :root{
+    --bg:#fbfaf8; --surface:#ffffff; --ink:#1c1b22; --muted:#5d5b6b;
+    --line:#e7e4df; --line-strong:#d6d2cb;
+    --accent:#5b51e0; --accent-soft:#efedfd; --accent-text:#4339c2;
+    --good:#1f8a5b; --good-soft:#e6f6ee; --good-text:#10663f;
+    --warn:#b8740a; --warn-soft:#fbf0dc; --warn-text:#8a5604;
+    --bad:#c0392b; --bad-soft:#fbeae7; --bad-text:#962317;
+    --info:#1d6fb8; --info-soft:#e6f1fb; --info-text:#14517f;
+    --code-bg:#f4f2ee;
+    --maxw:980px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#16151a; --surface:#1f1e25; --ink:#ecebf0; --muted:#a6a3b4;
+      --line:#33313c; --line-strong:#403e4b;
+      --accent:#9a91ff; --accent-soft:#272447; --accent-text:#bcb4ff;
+      --good:#56c98e; --good-soft:#16301f; --good-text:#7fe0aa;
+      --warn:#e6a948; --warn-soft:#36290f; --warn-text:#f0c372;
+      --bad:#f0796a; --bad-soft:#371813; --bad-text:#ff9c8f;
+      --info:#62a8e6; --info-soft:#11283c; --info-text:#9ccbf0;
+      --code-bg:#27262e;
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:var(--maxw); margin-inline:auto; padding:0 24px}
+  main section{padding:40px 0; border-top:1px solid var(--line)}
+  main > section:first-of-type{border-top:none}
+  p,li{max-width:74ch}
+  h1,h2,h3,h4{line-height:1.2; letter-spacing:-0.01em; margin:0 0 .5em}
+  h2{font-size:1.7rem; margin-top:.2em}
+  h3{font-size:1.22rem; margin-top:1.6em}
+  h4{font-size:1.02rem; margin-top:1.3em; color:var(--ink)}
+  a{color:var(--accent-text); text-decoration:none; border-bottom:1px solid color-mix(in srgb,var(--accent-text) 30%, transparent)}
+  a:hover{border-bottom-color:var(--accent-text)}
+  .eyebrow{font-size:.74rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-text); margin-bottom:.7em}
+  code{background:var(--code-bg); padding:.1em .38em; border-radius:5px; font:0.86em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  pre{background:var(--code-bg); padding:14px 16px; border-radius:10px; overflow:auto; border:1px solid var(--line)}
+  pre code{background:none; padding:0}
+
+  /* Hero */
+  header.hero{padding:72px 0 30px; background:
+     radial-gradient(120% 90% at 85% -10%, color-mix(in srgb,var(--accent) 16%, transparent), transparent 60%);}
+  header.hero h1{font-size:2.7rem; max-width:18ch}
+  header.hero .lede{font-size:1.18rem; color:var(--muted); max-width:62ch}
+  .meta-row{display:flex; flex-wrap:wrap; gap:8px; margin-top:22px}
+  .pill{display:inline-flex; align-items:center; gap:6px; font-size:.8rem; font-weight:600;
+    background:var(--surface); border:1px solid var(--line-strong); color:var(--muted);
+    padding:5px 11px; border-radius:999px}
+  .pill.accent{background:var(--accent-soft); color:var(--accent-text); border-color:transparent}
+
+  /* TL;DR */
+  .tldr{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:24px 26px; margin-top:8px}
+  .tldr h2{margin-top:0; font-size:1.15rem; display:flex; align-items:center; gap:10px}
+  .tldr ol{margin:.4em 0 0; padding-left:1.25em}
+  .tldr li{margin:.5em 0}
+
+  /* Cards & grids */
+  .grid{display:grid; gap:16px}
+  .grid.cols-2{grid-template-columns:repeat(2,1fr)}
+  .grid.cols-3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:720px){.grid.cols-2,.grid.cols-3{grid-template-columns:1fr}}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:18px 20px}
+  .card h4{margin-top:0}
+  .card .num{font-size:1.9rem; font-weight:800; letter-spacing:-.02em; color:var(--accent-text); line-height:1}
+  .card .lbl{font-size:.82rem; color:var(--muted); margin-top:4px}
+
+  /* callouts */
+  .callout{border-radius:12px; padding:14px 18px; margin:18px 0; border:1px solid var(--line)}
+  .callout p:last-child{margin-bottom:0}
+  .callout p:first-child{margin-top:0}
+  .callout.good{background:var(--good-soft); border-color:transparent}
+  .callout.warn{background:var(--warn-soft); border-color:transparent}
+  .callout.info{background:var(--info-soft); border-color:transparent}
+  .callout.accent{background:var(--accent-soft); border-color:transparent}
+  .callout .tag{font-weight:700; font-size:.74rem; letter-spacing:.08em; text-transform:uppercase}
+  .callout.good .tag{color:var(--good-text)} .callout.warn .tag{color:var(--warn-text)}
+  .callout.info .tag{color:var(--info-text)} .callout.accent .tag{color:var(--accent-text)}
+
+  /* tables */
+  table{border-collapse:collapse; width:100%; font-size:.92rem; margin:18px 0}
+  th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{font-size:.72rem; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); border-bottom:1.5px solid var(--line-strong)}
+  tbody tr:hover{background:color-mix(in srgb,var(--accent) 5%, transparent)}
+  .chip{display:inline-block; font-size:.72rem; font-weight:700; padding:2px 9px; border-radius:999px; white-space:nowrap}
+  .chip.good{background:var(--good-soft); color:var(--good-text)}
+  .chip.warn{background:var(--warn-soft); color:var(--warn-text)}
+  .chip.bad{background:var(--bad-soft); color:var(--bad-text)}
+  .chip.info{background:var(--info-soft); color:var(--info-text)}
+  .chip.accent{background:var(--accent-soft); color:var(--accent-text)}
+
+  figure{margin:24px 0; text-align:center}
+  figure svg{max-width:100%; height:auto}
+  figcaption{font-size:.84rem; color:var(--muted); margin-top:10px; max-width:70ch; margin-inline:auto}
+
+  /* recommendation block */
+  .rec{background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--accent); border-radius:12px; padding:20px 22px; margin:20px 0}
+  .rec h3{margin-top:0; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
+  .rec .rid{font:700 .8rem ui-monospace,monospace; color:var(--accent-text); background:var(--accent-soft); padding:2px 8px; border-radius:6px}
+  .rec .why{color:var(--muted)}
+  .rec dl{display:grid; grid-template-columns:auto 1fr; gap:6px 14px; margin:14px 0 0; font-size:.93rem}
+  .rec dt{font-weight:700; color:var(--muted); font-size:.78rem; text-transform:uppercase; letter-spacing:.05em; padding-top:2px}
+  .rec dd{margin:0}
+  .badges{display:flex; gap:6px; margin-left:auto}
+
+  /* TOC */
+  nav.toc{position:sticky; top:0; background:color-mix(in srgb,var(--bg) 88%, transparent); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line); z-index:10; font-size:.85rem}
+  nav.toc .wrap{display:flex; gap:18px; flex-wrap:wrap; padding-top:12px; padding-bottom:12px}
+  nav.toc a{border:none; color:var(--muted); font-weight:600}
+  nav.toc a:hover{color:var(--accent-text)}
+  footer{padding:40px 0 70px; color:var(--muted); font-size:.86rem; border-top:1px solid var(--line)}
+  .src{font-size:.8rem}
+  hr.soft{border:none; border-top:1px solid var(--line); margin:30px 0}
+  .twocol{display:grid; grid-template-columns:1fr 1fr; gap:0; border:1px solid var(--line); border-radius:14px; overflow:hidden}
+  @media(max-width:720px){.twocol{grid-template-columns:1fr}}
+  .twocol > div{padding:18px 20px}
+  .twocol > div:first-child{border-right:1px solid var(--line); background:color-mix(in srgb,var(--info) 5%, transparent)}
+  @media(max-width:720px){.twocol > div:first-child{border-right:none; border-bottom:1px solid var(--line)}}
+  .twocol h4{margin-top:0}
+  .legend{display:flex; gap:18px; flex-wrap:wrap; justify-content:center; font-size:.8rem; color:var(--muted); margin-top:6px}
+  .legend span{display:inline-flex; align-items:center; gap:6px}
+  .dot{width:11px; height:11px; border-radius:3px; display:inline-block}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Plugin Strategy Analysis &middot; June 2026</div>
+    <h1>What Superpowers&nbsp;v6 Teaches Compound&nbsp;Engineering</h1>
+    <p class="lede">Obra's Superpowers 6.0 is, underneath the changelog, a <strong>cost-and-fidelity campaign</strong> on an agentic development methodology. This report dissects what actually changed, maps each idea onto our compound-engineering plugin, and turns the overlap into a prioritized set of changes we can make.</p>
+    <div class="meta-row">
+      <span class="pill accent">Source: obra/superpowers @ v6.0.0</span>
+      <span class="pill">Target: compound-engineering plugin</span>
+      <span class="pill">39 skills &middot; 43 agents</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#whatchanged">What changed</a>
+    <a href="#convergent">Convergent vs divergent</a>
+    <a href="#review">The review rewrite</a>
+    <a href="#plans">Plans as contracts</a>
+    <a href="#measure">The measurement gap</a>
+    <a href="#actions">Recommendations</a>
+    <a href="#map">Full map</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<section>
+  <div class="tldr">
+    <h2>&#9889; The one-paragraph version</h2>
+    <p>Superpowers v6 didn't add features &mdash; it <strong>made its existing methodology measurably cheaper without losing quality</strong> (their evals report ~2&times; faster, ~50% fewer tokens). It did that with seven moves: merging two task reviewers into one dual-verdict pass, handing diffs and task text between agents <em>as files instead of pasted text</em>, a "cannot verify from the diff" escape hatch, explicit per-dispatch model tiering, a durable progress ledger that survives context compaction, plans that carry <em>Global Constraints</em> and per-task <em>Interfaces</em> blocks, and &mdash; the real unlock &mdash; a cross-harness eval harness ("drill") that runs real agent sessions and grades skill behavior.</p>
+    <ol>
+      <li><strong>We're already ahead on several fronts</strong> &mdash; model tiering, harness-agnostic vocabulary, right-sizing, and TDD-with-evidence all exist in our plugin. This is convergent evolution, not a gap.</li>
+      <li><strong>Five mechanisms are cleanly borrowable</strong> and high-leverage: the &#9888; "cannot-verify" verdict, file-handoff for review packets, a durable progress ledger, and Global-Constraints / Interfaces blocks in plans.</li>
+      <li><strong>The strategic gap is measurement.</strong> We make a deliberate, expensive quality bet (6&ndash;9 persona reviewers per review) but we have <em>no standing way to measure</em> whether it's worth the cost. Superpowers' whole v6 was possible <em>because</em> they built the eval + cost harness first. That's the thing to copy.</li>
+    </ol>
+  </div>
+</section>
+
+<section id="whatchanged">
+  <div class="eyebrow">Part 1</div>
+  <h2>What actually changed in v6</h2>
+  <p>The headline number &mdash; "twice as fast, ~50% fewer tokens, same quality" &mdash; is an outcome. The interesting part is the seven mechanisms that produced it. Superpowers' spine is <code>subagent-driven-development</code> (SDD): a controller agent dispatches one implementer per task, then a reviewer per task, then a whole-branch review at the end. Every v6 change tightens that loop.</p>
+
+  <figure>
+    <svg viewBox="0 0 920 360" role="img" aria-label="Superpowers v6 subagent-driven-development loop">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#8a86a8"/></marker>
+        <style>
+          .box{fill:var(--surface); stroke:var(--line-strong); stroke-width:1.5; rx:12}
+          .lbl{font:600 14px sans-serif; fill:var(--ink)}
+          .sub{font:11px sans-serif; fill:var(--muted)}
+          .flow{stroke:#8a86a8; stroke-width:1.6; fill:none}
+          .file{fill:var(--accent-soft); stroke:var(--accent); stroke-width:1.3}
+          .filet{font:600 10px ui-monospace,monospace; fill:var(--accent-text)}
+        </style>
+      </defs>
+      <!-- controller -->
+      <rect class="box" x="360" y="20" width="200" height="58" rx="12"/>
+      <text class="lbl" x="460" y="44" text-anchor="middle">Controller</text>
+      <text class="sub" x="460" y="62" text-anchor="middle">orchestrates &middot; tiers models &middot; keeps ledger</text>
+
+      <!-- ledger -->
+      <rect class="file" x="610" y="24" width="230" height="50" rx="10"/>
+      <text class="filet" x="625" y="44">&lt;git-dir&gt;/sdd/progress.md</text>
+      <text class="sub" x="625" y="60">recovery map &mdash; survives compaction</text>
+
+      <!-- task brief -->
+      <rect class="file" x="70" y="24" width="200" height="50" rx="10"/>
+      <text class="filet" x="85" y="44">sdd/task-N-brief.md</text>
+      <text class="sub" x="85" y="60">+ Global Constraints, Interfaces</text>
+
+      <!-- implementer -->
+      <rect class="box" x="120" y="150" width="220" height="64" rx="12"/>
+      <text class="lbl" x="230" y="176" text-anchor="middle">Implementer</text>
+      <text class="sub" x="230" y="194" text-anchor="middle">cheapest tier that one-shots</text>
+      <text class="sub" x="230" y="208" text-anchor="middle">TDD: writes RED/GREEN evidence</text>
+
+      <!-- review package -->
+      <rect class="file" x="400" y="156" width="180" height="52" rx="10"/>
+      <text class="filet" x="414" y="176">sdd/review-…​.diff</text>
+      <text class="sub" x="414" y="192">log + stat + git diff -U10</text>
+
+      <!-- reviewer -->
+      <rect class="box" x="630" y="150" width="220" height="64" rx="12"/>
+      <text class="lbl" x="740" y="172" text-anchor="middle">Task Reviewer (one)</text>
+      <text class="sub" x="740" y="189" text-anchor="middle">Verdict 1: spec &middot; Verdict 2: quality</text>
+      <text class="sub" x="740" y="203" text-anchor="middle">read-only &middot; terse &middot; &#9888; cannot-verify</text>
+
+      <!-- whole branch review -->
+      <rect class="box" x="330" y="290" width="260" height="50" rx="12"/>
+      <text class="lbl" x="460" y="312" text-anchor="middle">Whole-branch review</text>
+      <text class="sub" x="460" y="328" text-anchor="middle">most-capable model &middot; runs once at the end</text>
+
+      <!-- flows -->
+      <path class="flow" d="M360,52 H280" marker-end="url(#ar)"/>
+      <path class="flow" d="M560,50 H605" marker-end="url(#ar)"/>
+      <path class="flow" d="M250,74 V145" marker-end="url(#ar)"/>
+      <path class="flow" d="M340,184 H395" marker-end="url(#ar)"/>
+      <path class="flow" d="M580,182 H625" marker-end="url(#ar)"/>
+      <path class="flow" d="M740,214 V250 H460 V285" marker-end="url(#ar)"/>
+      <path class="flow" d="M630,182 Q470,120 460,80" marker-end="url(#ar)"/>
+    </svg>
+    <figcaption>The v6 SDD loop. Blue boxes are <em>files on disk</em>: task briefs, the pre-baked diff packet, and the progress ledger. The controller's context never holds the diff body or the full task text &mdash; only paths. That file-handoff discipline is the through-line behind most of the cost win.</figcaption>
+  </figure>
+
+  <div class="grid cols-3">
+    <div class="card"><div class="num">2&rarr;1</div><div class="lbl">Reviewers per task. Spec-compliance and code-quality merged into one dual-verdict pass.</div></div>
+    <div class="card"><div class="num">~41%</div><div class="lbl">Reviewer output reduction from a "terse contract": every line is a verdict, a <code>file:line</code> finding, or a check actually run.</div></div>
+    <div class="card"><div class="num">~50%</div><div class="lbl">Fewer tokens end-to-end at parity quality, per their N=5 eval gates.</div></div>
+  </div>
+
+  <h3>The seven mechanisms</h3>
+  <table>
+    <thead><tr><th>Mechanism</th><th>What it does</th><th>The lever</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Single reviewer, dual verdict</strong></td><td>One subagent returns Part&nbsp;1 (spec: Missing / Extra / Misunderstood) and Part&nbsp;2 (quality + structure) in a single pass.</td><td>Halves per-task review dispatches.</td></tr>
+      <tr><td><strong>Pre-baked review packet</strong></td><td>A bash script writes <code>header + git log + git diff --stat + git diff -U10</code> to a file; only the <em>path</em> is handed to the reviewer.</td><td>Diff body never resident in controller context.</td></tr>
+      <tr><td><strong>&#9888; Cannot verify from diff</strong></td><td>A third verdict line: requirements that live in unchanged code or span tasks are surfaced for the human to check &mdash; not silently dropped, not chased.</td><td>Converts blind spots into explicit handoffs.</td></tr>
+      <tr><td><strong>Conditional model tiering</strong></td><td>1&ndash;2 files + complete spec &rarr; cheap; multi-file integration &rarr; mid; design/broad &rarr; premium. <code>model:</code> always explicit.</td><td>Stops silent inheritance of the expensive session model.</td></tr>
+      <tr><td><strong>Durable progress ledger</strong></td><td><code>sdd/progress.md</code> names the commits for each completed task; after compaction, trust the ledger over memory.</td><td>Kills the "re-ran a finished task sequence" failure.</td></tr>
+      <tr><td><strong>Plans carry constraints + interfaces</strong></td><td>A verbatim <em>Global Constraints</em> header and a per-task <em>Interfaces: consumes/produces</em> block.</td><td>Structure &amp; contracts carry fidelity; bodies become transcription.</td></tr>
+      <tr><td><strong>Cross-harness eval harness</strong></td><td>"drill" drives real tmux sessions (Claude Code, Codex, Gemini, Pi, Antigravity), an LLM actor plays the user, an LLM verifier grades skill compliance.</td><td>Makes every other change measurable &mdash; the meta-lever.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="convergent">
+  <div class="eyebrow">Part 2</div>
+  <h2>Convergent evolution &mdash; and where we made a different bet</h2>
+  <p>The most important framing for this whole report: <strong>our plugin and Superpowers are two independent solutions to the same problem</strong>, and on most axes they've converged. Reading v6 as "things we're missing" would be wrong. The useful reading is "where did they validate a choice we already made, where can we cheaply borrow, and where did they deliberately go a different direction than us &mdash; and why."</p>
+
+  <figure>
+    <svg viewBox="0 0 920 300" role="img" aria-label="Convergent and divergent design axes">
+      <defs><style>
+        .ax{font:600 13px sans-serif; fill:var(--ink)}
+        .cap{font:11px sans-serif; fill:var(--muted)}
+        .barbg{fill:var(--code-bg)}
+        .us{fill:var(--accent)} .sp{fill:#8a86a8}
+      </style></defs>
+      <text class="ax" x="20" y="30">Convergent (both arrived here independently)</text>
+      <g transform="translate(20,44)">
+        <g><rect class="barbg" x="0" y="0" width="420" height="22" rx="6"/><rect class="us" x="0" y="0" width="410" height="22" rx="6"/><text class="cap" x="430" y="16">Harness-agnostic vocabulary &amp; multi-platform support</text></g>
+        <g transform="translate(0,30)"><rect class="barbg" x="0" y="0" width="420" height="22" rx="6"/><rect class="us" x="0" y="0" width="390" height="22" rx="6"/><text class="cap" x="430" y="16">Model tiering (cheap / mid / session-model for high-stakes)</text></g>
+        <g transform="translate(0,60)"><rect class="barbg" x="0" y="0" width="420" height="22" rx="6"/><rect class="us" x="0" y="0" width="400" height="22" rx="6"/><text class="cap" x="430" y="16">Right-sizing work to complexity</text></g>
+        <g transform="translate(0,90)"><rect class="barbg" x="0" y="0" width="420" height="22" rx="6"/><rect class="us" x="0" y="0" width="370" height="22" rx="6"/><text class="cap" x="430" y="16">TDD with red/green evidence &amp; verification gates</text></g>
+      </g>
+      <text class="ax" x="20" y="210">Divergent bet: review breadth</text>
+      <g transform="translate(20,224)">
+        <rect class="barbg" x="0" y="0" width="420" height="22" rx="6"/><rect class="sp" x="0" y="0" width="60" height="22" rx="6"/>
+        <text class="cap" x="430" y="16">Superpowers: 1 merged reviewer per task (cost-first)</text>
+        <g transform="translate(0,30)"><rect class="barbg" x="0" y="0" width="420" height="22" rx="6"/><rect class="us" x="0" y="0" width="420" height="22" rx="6"/><text class="cap" x="430" y="16">Compound-eng: 6&ndash;9 persona reviewers + dedup (coverage-first)</text></g>
+      </g>
+    </svg>
+    <figcaption>On the top four axes we and Superpowers converged independently &mdash; strong evidence those are correct. The bottom axis is a genuine fork: they optimized review for cost, we optimized for coverage. Neither is wrong; the lesson is that <em>they can prove their tradeoff and we can't yet</em>.</figcaption>
+  </figure>
+
+  <div class="grid cols-2">
+    <div class="callout good">
+      <span class="tag">Where we're already strong</span>
+      <p>Our <code>ce-code-review</code> already tiers models (Haiku for the trivial-PR gate, a mid-tier for most personas, the session model for correctness/security/adversarial). Our skills already speak in actions ("dispatch a subagent") and resolve the right per-harness tool for Claude Code, Codex, Gemini, and Pi. <code>ce-plan</code> already right-sizes and our reviewers already demand evidence. We did not need v6 to tell us these are correct &mdash; but v6 independently validates them.</p>
+    </div>
+    <div class="callout warn">
+      <span class="tag">Where the different bet costs us</span>
+      <p>We fan out to 6&ndash;9 specialized persona reviewers per review and dedup their findings. That buys real coverage &mdash; Superpowers' single reviewer cannot match a dedicated <code>ce-data-migration-reviewer</code> or <code>ce-julik-frontend-races-reviewer</code>. But it is <em>expensive</em>, and we have never measured the coverage-per-dollar. Superpowers' two-tier shape (cheap per-task gate during iteration, thorough review once at the end) is a hybrid we should seriously consider.</p>
+    </div>
+  </div>
+</section>
+
+<section id="review">
+  <div class="eyebrow">Part 3</div>
+  <h2>The review rewrite, side by side</h2>
+  <p>This is the heart of v6 and the place our designs most directly disagree. Worth looking at both honestly.</p>
+
+  <figure>
+    <svg viewBox="0 0 920 330" role="img" aria-label="Superpowers single reviewer versus our persona fleet">
+      <defs><style>
+        .t{font:700 14px sans-serif; fill:var(--ink)}
+        .n{font:600 12px sans-serif; fill:var(--ink)}
+        .s{font:11px sans-serif; fill:var(--muted)}
+        .rb{fill:var(--surface); stroke:var(--line-strong); stroke-width:1.4}
+        .ra{fill:var(--accent-soft); stroke:var(--accent); stroke-width:1.3}
+        .rl{stroke:#9a96b4; stroke-width:1.4; fill:none}
+      </style>
+      <marker id="ar2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#9a96b4"/></marker>
+      </defs>
+      <!-- left: superpowers -->
+      <text class="t" x="40" y="28">Superpowers v6 &mdash; per task</text>
+      <rect class="rb" x="40" y="44" width="120" height="44" rx="9"/><text class="n" x="100" y="64" text-anchor="middle">diff packet</text><text class="s" x="100" y="79" text-anchor="middle">(a file)</text>
+      <rect class="ra" x="40" y="130" width="170" height="58" rx="9"/><text class="n" x="125" y="153" text-anchor="middle">ONE reviewer</text><text class="s" x="125" y="170" text-anchor="middle">spec + quality verdicts</text><text class="s" x="125" y="183" text-anchor="middle">tiered to diff size</text>
+      <rect class="rb" x="40" y="230" width="170" height="44" rx="9"/><text class="n" x="125" y="250" text-anchor="middle">Approved / Needs fixes</text><text class="s" x="125" y="266" text-anchor="middle">+ &#9888; cannot-verify list</text>
+      <path class="rl" d="M100,88 V126" marker-end="url(#ar2)"/>
+      <path class="rl" d="M125,188 V226" marker-end="url(#ar2)"/>
+
+      <line x1="460" y1="20" x2="460" y2="310" stroke="var(--line)" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+      <!-- right: ours -->
+      <text class="t" x="500" y="28">Compound-eng &mdash; per review</text>
+      <rect class="rb" x="500" y="44" width="120" height="44" rx="9"/><text class="n" x="560" y="64" text-anchor="middle">diff (inline)</text><text class="s" x="560" y="79" text-anchor="middle">pasted per agent</text>
+      <!-- fan -->
+      <g>
+        <rect class="ra" x="500" y="120" width="86" height="34" rx="8"/><text class="s" x="543" y="141" text-anchor="middle">correctness</text>
+        <rect class="ra" x="592" y="120" width="80" height="34" rx="8"/><text class="s" x="632" y="141" text-anchor="middle">security</text>
+        <rect class="ra" x="678" y="120" width="92" height="34" rx="8"/><text class="s" x="724" y="141" text-anchor="middle">adversarial</text>
+        <rect class="rb" x="500" y="160" width="86" height="34" rx="8"/><text class="s" x="543" y="181" text-anchor="middle">reliability</text>
+        <rect class="rb" x="592" y="160" width="80" height="34" rx="8"/><text class="s" x="632" y="181" text-anchor="middle">perf</text>
+        <rect class="rb" x="678" y="160" width="92" height="34" rx="8"/><text class="s" x="724" y="181" text-anchor="middle">+ conditionals</text>
+      </g>
+      <rect class="rb" x="780" y="120" width="110" height="74" rx="9"/><text class="s" x="835" y="150" text-anchor="middle">6&ndash;9</text><text class="s" x="835" y="166" text-anchor="middle">parallel</text><text class="s" x="835" y="182" text-anchor="middle">personas</text>
+      <rect class="rb" x="560" y="232" width="250" height="50" rx="9"/><text class="n" x="685" y="254" text-anchor="middle">merge + dedup + confidence gate</text><text class="s" x="685" y="271" text-anchor="middle">validators re-check before surfacing</text>
+      <path class="rl" d="M560,88 V116" marker-end="url(#ar2)"/>
+      <path class="rl" d="M620,194 Q650,215 670,230" marker-end="url(#ar2)"/>
+    </svg>
+    <figcaption>Two philosophies. Left: one reviewer, two verdicts, scaled to the diff &mdash; cheap and uniform, with an explicit channel for "I couldn't check this." Right: a fleet of specialists merged through a dedup-and-confidence pipeline &mdash; broad and deep, but every reviewer re-reads a pasted diff and the cost is unmeasured.</figcaption>
+  </figure>
+
+  <h3>Three things from their reviewer we should take regardless of the breadth debate</h3>
+  <div class="twocol">
+    <div>
+      <h4>What Superpowers does</h4>
+      <p><strong>&#9888; "Cannot verify from the diff."</strong> If a requirement lives in unchanged code or spans tasks, the reviewer reports it as a &#9888; line for the controller to check &mdash; <em>"instead of broadening your search."</em></p>
+    </div>
+    <div>
+      <h4>What we do today</h4>
+      <p>Our <code>ce-coherence-reviewer</code> does the <em>opposite</em>: findings it "cannot verify" are <strong>suppressed entirely</strong> (below confidence anchor 50). The thing we can't check silently disappears instead of becoming a human to-do.</p>
+    </div>
+  </div>
+  <div class="twocol">
+    <div>
+      <h4>What Superpowers does</h4>
+      <p><strong>Diff travels as a file.</strong> One script bakes <code>git log + --stat + diff -U10</code> into a packet on disk; the reviewer reads the path once and is told the context lines <em>are</em> the changed files &mdash; don't re-open them.</p>
+    </div>
+    <div>
+      <h4>What we do today</h4>
+      <p>We compute the diff, then <strong>paste it inline into each of 6&ndash;9 reviewer prompts</strong>. The same diff body is duplicated N times and stays resident. We already write reviewer <em>outputs</em> to a run dir &mdash; inputs could go the same way.</p>
+    </div>
+  </div>
+  <div class="twocol">
+    <div>
+      <h4>What Superpowers does</h4>
+      <p><strong>Rationale never downgrades severity.</strong> "Left it per YAGNI" is treated as the implementer grading their own work; a plan-mandated defect is still flagged (labeled <code>plan-mandated</code>) for the human to decide.</p>
+    </div>
+    <div>
+      <h4>What we do today</h4>
+      <p>We have read-only validators and confidence gating, which is good. But we don't have an explicit rule that a <em>stated design rationale</em> in the diff/PR can't suppress a finding &mdash; a cheap, sharp addition to our reviewer contract.</p>
+    </div>
+  </div>
+</section>
+
+<section id="plans">
+  <div class="eyebrow">Part 4</div>
+  <h2>Plans as contracts: constraints &amp; interfaces</h2>
+  <p>Superpowers' measured finding is blunt and worth internalizing: when a plan carries <em>complete structure</em> &mdash; exact constraints, exact cross-task interfaces, right-sized tasks &mdash; <strong>the implementation body becomes "transcription plus testing."</strong> The dollars and the bugs both come from the controller and from interface re-derivation, not from writing function bodies. Their v6 plan template encodes this with two blocks we don't have as first-class fields.</p>
+
+  <div class="grid cols-2">
+    <div class="card">
+      <h4>Global Constraints block</h4>
+      <p class="src">A verbatim plan-header section: version floors, dependency limits, naming/copy rules, platform requirements &mdash; "every task's requirements implicitly include this section." A <code>go 1.26.1</code> floor once shipped violated <em>because</em> it lived in prose and no one pasted it downstream. A fixed heading makes it mechanically extractable into every task brief.</p>
+    </div>
+    <div class="card">
+      <h4>Per-task Interfaces block</h4>
+      <p class="src"><code>Consumes:</code> what this task uses from earlier tasks (exact signatures). <code>Produces:</code> exact names/types later tasks rely on. "An implementer who sees only its own task still knows its neighbors' contracts." This is the single line that removes the implementer's ~13-call rediscovery of context.</p>
+    </div>
+  </div>
+
+  <div class="callout info">
+    <span class="tag">Our current state</span>
+    <p>Our <code>ce-plan</code> is genuinely strong here &mdash; Implementation Units carry <code>Files:</code>, per-unit test scenarios, and we already <em>reclassify plan depth upward</em> when work touches "external contract surfaces" (exported APIs, shared types). What we lack is (a) a dedicated <strong>verbatim project-wide constraints block</strong> that's guaranteed to reach every implementer, and (b) <strong>consumes/produces interfaces as a named per-unit field</strong> rather than something the implementer infers from the Files list and prose. Both are small additions to <code>references/plan-sections.md</code>, and both directly serve our own <code>ce-work</code> executor.</p>
+  </div>
+</section>
+
+<section id="measure">
+  <div class="eyebrow">Part 5 &mdash; the strategic one</div>
+  <h2>The measurement gap is the real lesson</h2>
+  <p>Everything above is borrowable tactics. This is the part that changes how we work. Superpowers could ship a "50% cheaper, same quality" release <strong>only because they built the instrument first</strong>: <code>drill</code>, an eval harness that launches a real agent session in tmux, has an LLM actor play the user, runs the skill to completion, and has an LLM verifier grade whether the skill triggered and was followed &mdash; across Claude Code, Codex, Gemini, Pi, and Antigravity. They ran 25+ cost experiments with N=5 quality gates and a blind A/B parity check, and killed the ones that regressed quality (a cheap reviewer tier "flagged 0 of 10 planted defects" &mdash; so it died at the gate).</p>
+
+  <figure>
+    <svg viewBox="0 0 900 230" role="img" aria-label="The drill eval loop">
+      <defs><style>
+        .db{fill:var(--surface);stroke:var(--line-strong);stroke-width:1.4}
+        .da{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.3}
+        .dl{font:600 12px sans-serif;fill:var(--ink)} .ds{font:11px sans-serif;fill:var(--muted)}
+        .df{stroke:#8a86a8;stroke-width:1.6;fill:none}
+      </style>
+      <marker id="ar3" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#8a86a8"/></marker></defs>
+      <rect class="da" x="20" y="80" width="150" height="60" rx="10"/><text class="dl" x="95" y="106" text-anchor="middle">LLM actor</text><text class="ds" x="95" y="123" text-anchor="middle">plays the user</text>
+      <rect class="db" x="230" y="70" width="190" height="80" rx="10"/><text class="dl" x="325" y="100" text-anchor="middle">real tmux session</text><text class="ds" x="325" y="118" text-anchor="middle">Claude Code / Codex /</text><text class="ds" x="325" y="132" text-anchor="middle">Gemini / Pi / Antigravity</text>
+      <rect class="da" x="480" y="80" width="160" height="60" rx="10"/><text class="dl" x="560" y="106" text-anchor="middle">LLM verifier</text><text class="ds" x="560" y="123" text-anchor="middle">grades transcript</text>
+      <rect class="db" x="700" y="80" width="170" height="60" rx="10"/><text class="dl" x="785" y="100" text-anchor="middle">pass / fail + $</text><text class="ds" x="785" y="118" text-anchor="middle">per scenario, N=5</text>
+      <path class="df" d="M170,110 H226" marker-end="url(#ar3)"/>
+      <path class="df" d="M420,110 H476" marker-end="url(#ar3)"/>
+      <path class="df" d="M640,110 H696" marker-end="url(#ar3)"/>
+      <text class="ds" x="325" y="185" text-anchor="middle">scenarios are YAML with verify.assertions &mdash; e.g. "reviewer catches the planted defect"</text>
+    </svg>
+    <figcaption>drill tests <em>behavior</em>, not code: does the skill fire, and does the agent follow it? This is exactly the loop our AGENTS.md describes doing <strong>manually</strong> with skill-creator today.</figcaption>
+  </figure>
+
+  <div class="callout accent">
+    <span class="tag">The honest comparison</span>
+    <p>Our plugin tests skill <em>behavior</em> by hand &mdash; AGENTS.md tells contributors to use <code>skill-creator</code> to spawn a subagent and eyeball the result. We have exactly one seed of automation: <code>ce-sessions/evals/</code> (an <code>evals.json</code> + a <code>grader.md</code>). We also have <code>ce-optimize</code>, which already knows how to run parallel experiments with hard gates and LLM-as-judge scoring &mdash; <strong>we have most of the machinery, just pointed at user problems instead of at our own skills.</strong> The gap is not capability; it's that we've never turned the instrument on ourselves.</p>
+  </div>
+  <p>Until we can measure cost-and-quality of our own workflows, every efficiency decision we make (Is the 9-reviewer fan-out worth it? Should the per-task gate be one cheap reviewer? Does pasting diffs inline actually cost us much?) is an argument, not a result. <strong>Building that harness is the highest-leverage thing on this list</strong>, because it's what makes everything else on this list decidable.</p>
+</section>
+
+<section id="actions">
+  <div class="eyebrow">Part 6</div>
+  <h2>Recommendations, prioritized</h2>
+  <p>Ordered by leverage-to-effort. Each is grounded in a specific v6 mechanism and a specific place in our plugin.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 420" role="img" aria-label="Impact versus effort matrix of recommendations">
+      <defs><style>
+        .axl{font:600 12px sans-serif;fill:var(--muted)}
+        .q{fill:var(--code-bg)} .qt{font:600 11px sans-serif;fill:var(--muted)}
+        .pt{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+        .ptl{font:700 12px sans-serif;fill:var(--surface)}
+        .ptt{font:600 12px sans-serif;fill:var(--ink)}
+      </style></defs>
+      <rect class="q" x="60" y="40" width="600" height="320" rx="10" fill="none" stroke="var(--line)"/>
+      <line x1="360" y1="40" x2="360" y2="360" stroke="var(--line)" stroke-dasharray="4 4"/>
+      <line x1="60" y1="200" x2="660" y2="200" stroke="var(--line)" stroke-dasharray="4 4"/>
+      <text class="axl" x="360" y="392" text-anchor="middle">Effort &rarr;</text>
+      <text class="axl" x="28" y="200" text-anchor="middle" transform="rotate(-90 28 200)">Impact &rarr;</text>
+      <text class="qt" x="200" y="60" text-anchor="middle">QUICK WINS</text>
+      <text class="qt" x="520" y="60" text-anchor="middle">BIG BETS</text>
+      <!-- points -->
+      <g><circle class="pt" cx="150" cy="120" r="17"/><text class="ptl" x="150" y="125" text-anchor="middle">R1</text><text class="ptt" x="172" y="124">Cannot-verify verdict</text></g>
+      <g><circle class="pt" cx="235" cy="160" r="17"/><text class="ptl" x="235" y="165" text-anchor="middle">R2</text><text class="ptt" x="257" y="164">Progress ledger</text></g>
+      <g><circle class="pt" cx="300" cy="150" r="17"/><text class="ptl" x="300" y="155" text-anchor="middle">R3</text><text class="ptt" x="322" y="154">Interfaces + Constraints</text></g>
+      <g><circle class="pt" cx="270" cy="235" r="16"/><text class="ptl" x="270" y="240" text-anchor="middle">R5</text><text class="ptt" x="292" y="239">File-handoff packets</text></g>
+      <g><circle class="pt" cx="150" cy="265" r="15"/><text class="ptl" x="150" y="270" text-anchor="middle">R6</text><text class="ptt" x="172" y="269">Rationale &ne; severity</text></g>
+      <g><circle class="pt" cx="175" cy="315" r="15"/><text class="ptl" x="175" y="320" text-anchor="middle">R7</text><text class="ptt" x="197" y="319">Model-dispatch audit</text></g>
+      <g><circle class="pt" cx="560" cy="110" r="19"/><text class="ptl" x="560" y="115" text-anchor="middle">R4</text><text class="ptt" x="498" y="98" text-anchor="end">Eval harness</text></g>
+      <g><circle class="pt" cx="540" cy="250" r="16"/><text class="ptl" x="540" y="255" text-anchor="middle">R8</text><text class="ptt" x="478" y="254" text-anchor="end">Two-tier review</text></g>
+    </svg>
+    <figcaption>R1&ndash;R3 are high-impact quick wins. R4 (the eval harness) is the big bet that unlocks evidence for R8 and everything else.</figcaption>
+  </figure>
+
+  <div class="rec">
+    <h3><span class="rid">R1</span> Add a "cannot verify from the diff" channel to code review<span class="badges"><span class="chip accent">high impact</span><span class="chip good">low effort</span></span></h3>
+    <p class="why">Our reviewers <em>suppress</em> what they can't verify; v6 <em>surfaces</em> it. Surfacing is strictly safer &mdash; an un-checkable requirement becomes a human to-do instead of a silent gap.</p>
+    <dl>
+      <dt>v6 source</dt><dd><code>subagent-driven-development/task-reviewer-prompt.md</code> &mdash; the &#9888; line reported alongside &#10003;/&#10007;.</dd>
+      <dt>Change</dt><dd>Add an <code>unverifiable[]</code> field to the reviewer JSON schema and a "Cannot verify from this diff" section to the <code>ce-code-review</code> report. Update <code>ce-coherence-reviewer</code> (and the shared reviewer template) so "cannot verify" routes to that channel instead of the suppress-below-50 path.</dd>
+      <dt>Files</dt><dd><code>skills/ce-code-review/SKILL.md</code>, <code>agents/ce-coherence-reviewer.md</code>, shared reviewer template.</dd>
+    </dl>
+  </div>
+
+  <div class="rec">
+    <h3><span class="rid">R2</span> A durable progress ledger for <code>ce-work</code><span class="badges"><span class="chip accent">high impact</span><span class="chip warn">low&ndash;med effort</span></span></h3>
+    <p class="why">v6 calls re-dispatching an already-finished task sequence after compaction "the single most expensive failure observed." We track progress in the in-session task list (dies on compaction) and git history (must be re-derived). A named ledger makes recovery deterministic.</p>
+    <dl>
+      <dt>v6 source</dt><dd><code>subagent-driven-development/SKILL.md</code> &mdash; <code>&lt;git-dir&gt;/sdd/progress.md</code>, "trust ledger over memory."</dd>
+      <dt>Change</dt><dd>Have <code>ce-work</code> append <code>U&lt;n&gt;: complete (commits &lt;a&gt;..&lt;b&gt;, review clean)</code> to a per-run ledger as each Implementation Unit lands, and read it on resume to skip finished units. Fits our scratch convention: cross-invocation reusable &rarr; <code>/tmp/compound-engineering/ce-work/&lt;run-id&gt;/progress.md</code> (or <code>.context/</code> if we want it user-inspectable across a checkout).</dd>
+      <dt>Files</dt><dd><code>skills/ce-work/SKILL.md</code> + a short reference for the ledger format.</dd>
+    </dl>
+  </div>
+
+  <div class="rec">
+    <h3><span class="rid">R3</span> Add Global-Constraints &amp; per-unit Interfaces to plans<span class="badges"><span class="chip accent">high impact</span><span class="chip warn">low&ndash;med effort</span></span></h3>
+    <p class="why">v6's measured result: structure and interfaces carry fidelity, bodies are transcription. We already reclassify on contract surfaces; making constraints and consumes/produces <em>first-class fields</em> closes the loop into <code>ce-work</code>.</p>
+    <dl>
+      <dt>v6 source</dt><dd><code>writing-plans/SKILL.md</code> &mdash; <code>## Global Constraints</code> header + per-task <code>Interfaces: consumes/produces</code>.</dd>
+      <dt>Change</dt><dd>Add an optional verbatim <strong>Global Constraints</strong> section to our plan hard-floor/include-when-material catalog, and an <strong>Interfaces (consumes / produces)</strong> field to Implementation Units when units have cross-unit contracts. Teach <code>ce-work</code> to pass both into per-unit execution.</dd>
+      <dt>Files</dt><dd><code>skills/ce-plan/references/plan-sections.md</code>, <code>skills/ce-work/SKILL.md</code>.</dd>
+    </dl>
+  </div>
+
+  <div class="rec">
+    <h3><span class="rid">R4</span> Build a skill-behavior eval harness (the big bet)<span class="badges"><span class="chip accent">highest impact</span><span class="chip bad">high effort</span></span></h3>
+    <p class="why">This is what made v6 possible. Without it, our efficiency choices stay arguments. We already have the pieces: <code>ce-optimize</code> runs gated parallel experiments with LLM-judge scoring, and <code>ce-sessions/evals/</code> is a working seed.</p>
+    <dl>
+      <dt>v6 source</dt><dd>"drill" + <code>evals/</code> submodule (<code>docs/testing.md</code>): tmux session &middot; LLM actor &middot; LLM verifier &middot; YAML scenarios with planted-defect assertions &middot; per-harness backends.</dd>
+      <dt>Change</dt><dd>Generalize <code>ce-sessions/evals</code> into a repo-level <code>evals/</code> harness with YAML scenarios ("reviewer catches the planted bug," "plan includes interface for cross-unit type," "ce-work resumes from ledger after compaction"), an actor + verifier, and <strong>cost capture per run</strong>. Start with 3&ndash;5 scenarios for our highest-stakes skills; keep it manual-only (not CI) like theirs.</dd>
+      <dt>Files</dt><dd>New <code>evals/</code> tree; reuse <code>ce-optimize</code> scoring patterns; lean on the <code>skill-creator</code> dispatch pattern AGENTS.md already endorses.</dd>
+    </dl>
+  </div>
+
+  <div class="rec">
+    <h3><span class="rid">R5</span> Hand the diff to reviewers as a file, not pasted inline<span class="badges"><span class="chip info">med impact</span><span class="chip warn">med effort</span></span></h3>
+    <p class="why">We paste the same diff body into 6&ndash;9 prompts; it stays resident in each. v6 writes one packet to disk and passes the path. We already write reviewer <em>outputs</em> to a run dir &mdash; inputs are a natural fit.</p>
+    <dl>
+      <dt>v6 source</dt><dd><code>subagent-driven-development/scripts/review-package</code> &mdash; <code>log + --stat + diff -U10</code> to a file; reviewers told context lines <em>are</em> the changed files.</dd>
+      <dt>Change</dt><dd>In <code>ce-code-review</code> Stage&nbsp;1, write the computed diff packet to <code>/tmp/compound-engineering/ce-code-review/&lt;run-id&gt;/packet.diff</code> and pass the path (not the body) in each reviewer spawn. Measure the token delta with R4 before/after to confirm it's worth it.</dd>
+      <dt>Files</dt><dd><code>skills/ce-code-review/SKILL.md</code>.</dd>
+    </dl>
+  </div>
+
+  <div class="rec">
+    <h3><span class="rid">R6</span> "A stated rationale never downgrades a finding"<span class="badges"><span class="chip info">med impact</span><span class="chip good">low effort</span></span></h3>
+    <p class="why">A sharp one-line addition to our reviewer contract that closes a real gaming vector: PR/diff prose that pre-justifies a defect ("kept simple per YAGNI") shouldn't soften the reviewer.</p>
+    <dl>
+      <dt>v6 source</dt><dd><code>task-reviewer-prompt.md</code> "Do Not Trust the Report" &mdash; rationale is the implementer grading their own work; plan-mandated defects still flagged.</dd>
+      <dt>Change</dt><dd>Add the rule to the shared reviewer template and the <code>ce-code-review</code> contract.</dd>
+      <dt>Files</dt><dd>shared reviewer template, <code>skills/ce-code-review/SKILL.md</code>.</dd>
+    </dl>
+  </div>
+
+  <div class="rec">
+    <h3><span class="rid">R7</span> Audit every subagent dispatch for explicit model + terse return<span class="badges"><span class="chip info">med impact</span><span class="chip good">low effort</span></span></h3>
+    <p class="why">We tier models well <em>in code review</em>, but other skills that dispatch subagents (research in <code>ce-plan</code> deepening, <code>ce-compound</code>, brainstorm fan-outs) may silently inherit the expensive session model. v6's guard: always state <code>model:</code>; and "turn count beats token price" (cheapest model that one-shots, not unconditionally cheapest).</p>
+    <dl>
+      <dt>v6 source</dt><dd>SDD Model Selection &mdash; "always specify the model explicitly"; Efficiency Principle.</dd>
+      <dt>Change</dt><dd>Sweep all <code>Agent</code>/dispatch sites across skills; add explicit tiering and a thin "&lt;15-line status summary, detail in a file" return contract where subagents currently narrate.</dd>
+      <dt>Files</dt><dd>cross-cutting; start with <code>ce-plan</code>, <code>ce-compound</code>, <code>ce-brainstorm</code>.</dd>
+    </dl>
+  </div>
+
+  <div class="rec">
+    <h3><span class="rid">R8</span> Consider a two-tier review: cheap per-task gate, full fleet at PR<span class="badges"><span class="chip info">med impact</span><span class="chip warn">med effort</span></span><span class="chip bad" style="align-self:center">needs R4 first</span></h3>
+    <p class="why">v6's shape &mdash; one cheap reviewer gating each task during iteration, one thorough review at the end &mdash; maps onto our world as: a single merged dual-verdict reviewer inside <code>ce-work</code>'s loop, reserving the 6&ndash;9-persona fleet for the PR gate. But this trades coverage for cost, so <strong>do not ship it on intuition</strong> &mdash; gate it on R4's measurements.</p>
+    <dl>
+      <dt>v6 source</dt><dd>SDD per-task gate vs whole-branch review; the cheap-reviewer tier that "died at the gate" when it missed planted defects.</dd>
+      <dt>Change</dt><dd>Prototype a single merged reviewer for <code>ce-work</code>'s inline post-unit check; A/B it against the full fleet on planted-defect scenarios; ship only if parity holds.</dd>
+      <dt>Files</dt><dd><code>skills/ce-work/SKILL.md</code>, <code>skills/ce-code-review/SKILL.md</code>.</dd>
+    </dl>
+  </div>
+</section>
+
+<section id="map">
+  <div class="eyebrow">Appendix</div>
+  <h2>Full mechanism map</h2>
+  <p>Every v6 mechanism against our plugin's current state.</p>
+  <table>
+    <thead><tr><th>v6 mechanism</th><th>Our state</th><th>Verdict</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td>Single reviewer, dual verdict</td><td>6&ndash;9 persona fleet + dedup</td><td><span class="chip info">different bet</span></td><td>R8 (measure first)</td></tr>
+      <tr><td>&#9888; Cannot verify from diff</td><td>Suppressed below confidence 50</td><td><span class="chip bad">we do the opposite</span></td><td>R1</td></tr>
+      <tr><td>Pre-baked diff packet as file</td><td>Diff pasted inline per reviewer</td><td><span class="chip warn">behind</span></td><td>R5</td></tr>
+      <tr><td>File-handoff principle</td><td>Outputs to run dir; inputs inline</td><td><span class="chip warn">partial</span></td><td>R5, R7</td></tr>
+      <tr><td>Rationale never downgrades severity</td><td>Read-only validators, no explicit rule</td><td><span class="chip warn">partial</span></td><td>R6</td></tr>
+      <tr><td>Conditional model tiering</td><td>Implemented in code review</td><td><span class="chip good">ahead / parallel</span></td><td>R7 (extend)</td></tr>
+      <tr><td>Explicit-model guard</td><td>Done in review, unaudited elsewhere</td><td><span class="chip warn">partial</span></td><td>R7</td></tr>
+      <tr><td>"Turn count beats token price"</td><td>Implicit</td><td><span class="chip warn">unstated</span></td><td>R7</td></tr>
+      <tr><td>Terse subagent contract</td><td>Reviewers return JSON; others narrate</td><td><span class="chip warn">partial</span></td><td>R7</td></tr>
+      <tr><td>Durable progress ledger</td><td>In-session tracker + git</td><td><span class="chip warn">behind</span></td><td>R2</td></tr>
+      <tr><td>Global Constraints block</td><td>KTDs, no verbatim constraints block</td><td><span class="chip warn">partial</span></td><td>R3</td></tr>
+      <tr><td>Per-task Interfaces block</td><td>Files + contract-surface reclassify</td><td><span class="chip warn">partial</span></td><td>R3</td></tr>
+      <tr><td>Right-sizing tasks</td><td>ce-plan + ce-work both right-size</td><td><span class="chip good">ahead / parallel</span></td><td>&mdash;</td></tr>
+      <tr><td>No-placeholders plan rule</td><td>No pre-written code; similar guardrails</td><td><span class="chip good">parallel</span></td><td>&mdash;</td></tr>
+      <tr><td>TDD with red/green evidence</td><td>Test-first fixes, verification gates</td><td><span class="chip good">parallel</span></td><td>&mdash;</td></tr>
+      <tr><td>Harness-agnostic vocabulary</td><td>Action language + per-harness tools</td><td><span class="chip good">ahead / parallel</span></td><td>&mdash;</td></tr>
+      <tr><td>New harness support (Pi, Antigravity, Kimi)</td><td>CC/Codex/Gemini/OpenCode/Pi via converter</td><td><span class="chip info">parallel</span></td><td>eval Antigravity/Kimi targets</td></tr>
+      <tr><td>Cross-harness eval harness (drill)</td><td>Manual skill-creator; one evals seed</td><td><span class="chip bad">biggest gap</span></td><td>R4</td></tr>
+      <tr><td>Cost as first-class metric</td><td>ce-optimize (generic), no self-benchmark</td><td><span class="chip bad">gap</span></td><td>R4</td></tr>
+    </tbody>
+  </table>
+
+  <div class="legend">
+    <span><span class="dot" style="background:var(--good)"></span> ahead / parallel</span>
+    <span><span class="dot" style="background:var(--info)"></span> different bet</span>
+    <span><span class="dot" style="background:var(--warn)"></span> partial / behind</span>
+    <span><span class="dot" style="background:var(--bad)"></span> real gap</span>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>Sources.</strong> Obra Superpowers v6.0.0 launch (<a href="https://primeradiant.com/blog/2026/superpowers-6.html">primeradiant.com</a>) and repository (<a href="https://github.com/obra/superpowers">github.com/obra/superpowers</a>) &mdash; <code>RELEASE-NOTES.md</code>, <code>skills/subagent-driven-development/{SKILL.md, task-reviewer-prompt.md, implementer-prompt.md, scripts/review-package}</code>, <code>skills/{writing-plans, test-driven-development, verification-before-completion, requesting-code-review}/</code>, <code>docs/testing.md</code>, and the strict-cost-sdd design spec. Compound-engineering plugin state read from <code>plugins/compound-engineering/skills/{ce-code-review, ce-work, ce-plan, ce-optimize}</code> and <code>agents/ce-coherence-reviewer.md</code>.</p>
+    <p>Generated for the compound-engineering plugin &middot; June 2026. Numbers like "~50%" and "~41%" are Superpowers' own evals framing, grounded in their source where possible; the "structure carries the load, bodies are marginal" line is a paraphrase of their measured strict-cost-sdd finding, not a verbatim quote.</p>
+  </div>
+</footer>
+
+</body>
+</html>
