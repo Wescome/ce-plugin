@@ -137,7 +137,7 @@ describe("ce-brainstorm review contract", () => {
     expect(content).toContain("`references/handoff.md`")
 
     // Phase 4 menu exposes agent review as a first-class option and routes to ce-doc-review
-    expect(handoff).toContain("Agent review of requirements doc with `ce-doc-review`")
+    expect(handoff).toContain("Agent review of Product Contract with `ce-doc-review`")
     expect(handoff).toContain("Load the `ce-doc-review` skill")
 
     // Subsequent-round residual findings are surfaced as a prose nudge, not a separate menu option
