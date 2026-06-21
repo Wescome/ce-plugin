@@ -33,6 +33,7 @@ For each change:
 1. **Search for existing utilities and helpers** that could replace newly written code. Look for similar patterns elsewhere in the codebase — common locations are utility directories, shared modules, and files adjacent to the changed ones.
 2. **Flag any new function that duplicates existing functionality.** Suggest the existing function to use instead.
 3. **Flag any inline logic that could use an existing utility** — hand-rolled string manipulation, manual path handling, custom environment checks, ad-hoc type guards, and similar patterns are common candidates.
+4. **Flag diff code that reimplements a language standard-library or runtime primitive** — a hand-written routine the built-in stdlib/runtime API already provides (e.g., a manual array-dedup loop where the language ships a set-based idiom, a hand-rolled deep-clone/deep-merge where the runtime has one). Suggest the built-in **only when it is behavior-equivalent** for the inputs actually in play. Do not propose swaps that change behavior or UX: native UI controls (e.g., a custom date picker to `<input type=date>`), locale/`Intl`-dependent formatting, sort-stability assumptions, and serialization edge cases differ from their hand-rolled versions and are out of scope for a behavior-preserving pass.
 
 ### Agent 2: Code Quality Reviewer
 
@@ -67,6 +68,8 @@ Review the same changes for efficiency:
 Wait for all three agents to complete. Aggregate their findings and fix each issue directly. If a finding is a false positive or not worth addressing, note it and move on. Do not argue with the finding or raise questions to the user, just skip it.
 
 Before applying each fix, confirm it preserves behavior: same output for every input, same error behavior, and same side effects and ordering. If a fix can't clear that test, skip it — automated checks in Step 4 don't cover every behavior.
+
+**Never simplify away a safety check.** Input validation at trust boundaries, error handling that prevents data loss, security checks (authorization, escaping, sanitization), and accessibility affordances are not removable boilerplate — preserve them even when a finding frames them as redundant or inline-able. Code that drops one of these is not simpler, it is unfinished. If a proposed simplification would thin or remove one, skip it.
 
 ## Step 4: Verify behavior is preserved
 
