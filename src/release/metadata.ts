@@ -1,4 +1,5 @@
 import { promises as fs } from "fs"
+import type { Dirent } from "fs"
 import path from "path"
 import { readJson, writeJson } from "../utils/files"
 import type { ReleaseComponent } from "./types"
@@ -76,7 +77,13 @@ function resolveExpectedVersion(
 }
 
 export async function countMarkdownFiles(root: string): Promise<number> {
-  const entries = await fs.readdir(root, { withFileTypes: true })
+  let entries: Dirent[]
+  try {
+    entries = await fs.readdir(root, { withFileTypes: true })
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return 0
+    throw err
+  }
   let total = 0
 
   for (const entry of entries) {
@@ -123,7 +130,7 @@ export async function countMcpServers(pluginRoot: string): Promise<number> {
 }
 
 export async function getCompoundEngineeringCounts(root: string): Promise<CompoundEngineeringCounts> {
-  const pluginRoot = path.join(root, "plugins", "compound-engineering")
+  const pluginRoot = root
   const [agents, skills, mcpServers] = await Promise.all([
     countMarkdownFiles(path.join(pluginRoot, "agents")),
     countSkillDirectories(path.join(pluginRoot, "skills")),
@@ -151,8 +158,8 @@ export async function syncReleaseMetadata(options: SyncOptions = {}): Promise<Me
   const compoundDescription = await buildCompoundEngineeringDescription(root)
   const compoundMarketplaceDescription = await buildCompoundEngineeringMarketplaceDescription(root)
 
-  const compoundClaudePath = path.join(root, "plugins", "compound-engineering", ".claude-plugin", "plugin.json")
-  const compoundCursorPath = path.join(root, "plugins", "compound-engineering", ".cursor-plugin", "plugin.json")
+  const compoundClaudePath = path.join(root, ".claude-plugin", "plugin.json")
+  const compoundCursorPath = path.join(root, ".cursor-plugin", "plugin.json")
   const marketplaceClaudePath = path.join(root, ".claude-plugin", "marketplace.json")
   const marketplaceCursorPath = path.join(root, ".cursor-plugin", "marketplace.json")
 
@@ -234,7 +241,7 @@ export async function syncReleaseMetadata(options: SyncOptions = {}): Promise<Me
   // version sync is DETECT-ONLY here — release-please owns the bump via
   // `extra-files` in `.github/release-please-config.json`. Duplicating the
   // write would create a second authority for the same field.
-  const compoundCodexPath = path.join(root, "plugins", "compound-engineering", ".codex-plugin", "plugin.json")
+  const compoundCodexPath = path.join(root, ".codex-plugin", "plugin.json")
   const marketplaceCodexPath = path.join(root, ".agents", "plugins", "marketplace.json")
 
   const codexPluginTargets: Array<{

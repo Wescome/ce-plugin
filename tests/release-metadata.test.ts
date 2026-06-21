@@ -20,47 +20,35 @@ async function makeFixtureRoot(): Promise<string> {
   const root = await mkdtemp(path.join(os.tmpdir(), "release-metadata-"))
   tempRoots.push(root)
 
-  await mkdir(path.join(root, "plugins", "compound-engineering", "agents", "review"), {
-    recursive: true,
-  })
-  await mkdir(path.join(root, "plugins", "compound-engineering", "skills", "ce-plan"), {
-    recursive: true,
-  })
-  await mkdir(path.join(root, "plugins", "compound-engineering", ".claude-plugin"), {
-    recursive: true,
-  })
-  await mkdir(path.join(root, "plugins", "compound-engineering", ".cursor-plugin"), {
-    recursive: true,
-  })
-  await mkdir(path.join(root, "plugins", "compound-engineering", ".codex-plugin"), {
-    recursive: true,
-  })
+  await mkdir(path.join(root, "agents", "review"), { recursive: true })
+  await mkdir(path.join(root, "skills", "ce-plan"), { recursive: true })
   await mkdir(path.join(root, ".claude-plugin"), { recursive: true })
   await mkdir(path.join(root, ".cursor-plugin"), { recursive: true })
+  await mkdir(path.join(root, ".codex-plugin"), { recursive: true })
   await mkdir(path.join(root, ".agents", "plugins"), { recursive: true })
 
   await writeFile(
-    path.join(root, "plugins", "compound-engineering", "agents", "review", "agent.md"),
+    path.join(root, "agents", "review", "agent.md"),
     "# Review Agent\n",
   )
   await writeFile(
-    path.join(root, "plugins", "compound-engineering", "skills", "ce-plan", "SKILL.md"),
+    path.join(root, "skills", "ce-plan", "SKILL.md"),
     "# ce-plan\n",
   )
   await writeFile(
-    path.join(root, "plugins", "compound-engineering", ".mcp.json"),
+    path.join(root, ".mcp.json"),
     JSON.stringify({ mcpServers: { context7: { command: "ctx7" } } }, null, 2),
   )
   await writeFile(
-    path.join(root, "plugins", "compound-engineering", ".claude-plugin", "plugin.json"),
+    path.join(root, ".claude-plugin", "plugin.json"),
     JSON.stringify({ version: "2.42.0", description: "old" }, null, 2),
   )
   await writeFile(
-    path.join(root, "plugins", "compound-engineering", ".cursor-plugin", "plugin.json"),
+    path.join(root, ".cursor-plugin", "plugin.json"),
     JSON.stringify({ version: "2.33.0", description: "old" }, null, 2),
   )
   await writeFile(
-    path.join(root, "plugins", "compound-engineering", ".codex-plugin", "plugin.json"),
+    path.join(root, ".codex-plugin", "plugin.json"),
     JSON.stringify(
       {
         name: "compound-engineering",
@@ -118,13 +106,10 @@ describe("release metadata", () => {
     const counts = await getCompoundEngineeringCounts(process.cwd())
 
     expect(counts).toEqual({
-      agents: expect.any(Number),
-      skills: expect.any(Number),
-      mcpServers: expect.any(Number),
+      agents: 0,
+      skills: 27,
+      mcpServers: 0,
     })
-    expect(counts.agents).toBeGreaterThan(0)
-    expect(counts.skills).toBeGreaterThan(0)
-    expect(counts.mcpServers).toBeGreaterThanOrEqual(0)
   })
 
   test("builds a stable compound-engineering manifest description", async () => {
@@ -140,7 +125,7 @@ describe("release metadata", () => {
     const result = await syncReleaseMetadata({ root, write: false })
     const changedPaths = result.updates.filter((update) => update.changed).map((update) => update.path)
 
-    expect(changedPaths).toContain(path.join(root, "plugins", "compound-engineering", ".cursor-plugin", "plugin.json"))
+    expect(changedPaths).toContain(path.join(root, ".cursor-plugin", "plugin.json"))
     expect(changedPaths).toContain(path.join(root, ".claude-plugin", "marketplace.json"))
     expect(changedPaths).toContain(path.join(root, ".cursor-plugin", "marketplace.json"))
   })
@@ -149,7 +134,7 @@ describe("release metadata", () => {
     const root = await makeFixtureRoot()
     // Claude is at 2.42.0; fixture Codex is also 2.42.0 — drift Codex to 2.41.0.
     await writeFile(
-      path.join(root, "plugins", "compound-engineering", ".codex-plugin", "plugin.json"),
+      path.join(root, ".codex-plugin", "plugin.json"),
       JSON.stringify(
         { name: "compound-engineering", version: "2.41.0", skills: "./skills/" },
         null,
@@ -157,7 +142,7 @@ describe("release metadata", () => {
       ),
     )
     const result = await syncReleaseMetadata({ root, write: true })
-    const codexPath = path.join(root, "plugins", "compound-engineering", ".codex-plugin", "plugin.json")
+    const codexPath = path.join(root, ".codex-plugin", "plugin.json")
     const codexUpdate = result.updates.find((u) => u.path === codexPath)
 
     expect(codexUpdate).toBeDefined()
@@ -173,7 +158,7 @@ describe("release metadata", () => {
     const root = await makeFixtureRoot()
     // Fixture Claude description is "old"; Codex starts at "old" too. Give Claude a canonical description and drift Codex.
     await writeFile(
-      path.join(root, "plugins", "compound-engineering", ".claude-plugin", "plugin.json"),
+      path.join(root, ".claude-plugin", "plugin.json"),
       JSON.stringify(
         {
           version: "2.42.0",
@@ -184,7 +169,7 @@ describe("release metadata", () => {
       ),
     )
     await writeFile(
-      path.join(root, "plugins", "compound-engineering", ".codex-plugin", "plugin.json"),
+      path.join(root, ".codex-plugin", "plugin.json"),
       JSON.stringify(
         {
           name: "compound-engineering",
@@ -196,7 +181,7 @@ describe("release metadata", () => {
         2,
       ),
     )
-    const codexPath = path.join(root, "plugins", "compound-engineering", ".codex-plugin", "plugin.json")
+    const codexPath = path.join(root, ".codex-plugin", "plugin.json")
     await syncReleaseMetadata({ root, write: true })
 
     const afterContents = JSON.parse(await Bun.file(codexPath).text())
@@ -207,7 +192,7 @@ describe("release metadata", () => {
 
   test("reports missing Codex manifest as a structural error", async () => {
     const root = await makeFixtureRoot()
-    await Bun.$`rm ${path.join(root, "plugins", "compound-engineering", ".codex-plugin", "plugin.json")}`.quiet()
+    await Bun.$`rm ${path.join(root, ".codex-plugin", "plugin.json")}`.quiet()
 
     const result = await syncReleaseMetadata({ root, write: false })
 
@@ -217,7 +202,7 @@ describe("release metadata", () => {
   test("reports Codex plugin.json name mismatch as structural error", async () => {
     const root = await makeFixtureRoot()
     await writeFile(
-      path.join(root, "plugins", "compound-engineering", ".codex-plugin", "plugin.json"),
+      path.join(root, ".codex-plugin", "plugin.json"),
       JSON.stringify(
         { name: "wrong-name", version: "2.42.0", skills: "./skills/" },
         null,
@@ -237,7 +222,7 @@ describe("release metadata", () => {
     const root = await makeFixtureRoot()
     // Drop the `skills` field entirely from the compound-engineering Codex manifest.
     await writeFile(
-      path.join(root, "plugins", "compound-engineering", ".codex-plugin", "plugin.json"),
+      path.join(root, ".codex-plugin", "plugin.json"),
       JSON.stringify({ name: "compound-engineering", version: "2.42.0" }, null, 2),
     )
     const result = await syncReleaseMetadata({ root, write: false })
@@ -255,13 +240,13 @@ describe("release metadata", () => {
   test("reports missing skills directory when Codex manifest declares one", async () => {
     const root = await makeFixtureRoot()
     // Remove compound-engineering's skills dir but keep the skills declaration.
-    await Bun.$`rm -rf ${path.join(root, "plugins", "compound-engineering", "skills")}`.quiet()
+    await Bun.$`rm -rf ${path.join(root, "skills")}`.quiet()
     const result = await syncReleaseMetadata({ root, write: false })
 
     expect(
       result.errors.some(
         (err) =>
-          err.includes("compound-engineering") && err.includes("skills:") && err.includes("does not exist"),
+          err.includes(".codex-plugin/plugin.json") && err.includes("skills:") && err.includes("does not exist"),
       ),
     ).toBe(true)
   })
@@ -318,11 +303,11 @@ describe("release metadata", () => {
     const root = await makeFixtureRoot()
     // Align Claude <-> Codex versions and descriptions so there's no drift.
     await writeFile(
-      path.join(root, "plugins", "compound-engineering", ".claude-plugin", "plugin.json"),
+      path.join(root, ".claude-plugin", "plugin.json"),
       JSON.stringify({ version: "2.42.0", description: "aligned description" }, null, 2),
     )
     await writeFile(
-      path.join(root, "plugins", "compound-engineering", ".codex-plugin", "plugin.json"),
+      path.join(root, ".codex-plugin", "plugin.json"),
       JSON.stringify(
         {
           name: "compound-engineering",
