@@ -45,7 +45,7 @@ type PluginName = (typeof PLUGIN_NAMES)[number]
 type SourceInventory = {
   agents: string[]
   commands: string[]
-  skills: { name: string; cePlatforms?: string[]; disableModelInvocation?: boolean; userInvocable?: boolean }[]
+  skills: { name: string; cePlatforms?: string[]; userInvocable?: boolean }[]
 }
 
 function listFileBasenames(dir: string, extension: string): string[] {
@@ -99,9 +99,8 @@ function loadSourceInventory(pluginName: PluginName): SourceInventory {
     }
     const { data } = parseFrontmatter(raw, skillFile)
     const cePlatforms = Array.isArray(data.ce_platforms) ? (data.ce_platforms as string[]) : undefined
-    const disableModelInvocation = data["disable-model-invocation"] === true ? true : undefined
     const userInvocable = data["user-invocable"] === false ? false : undefined
-    skills.push({ name, cePlatforms, disableModelInvocation, userInvocable })
+    skills.push({ name, cePlatforms, userInvocable })
   }
   return { agents, commands, skills }
 }
@@ -120,14 +119,15 @@ function skillsForPlatform(inventory: SourceInventory, target: Target): string[]
 
 // Mirrors convertSkillsToCommands (src/converters/claude-to-opencode.ts) on
 // purpose: OpenCode generates one slash-command stub per platform-eligible
-// skill, excluding skills that opt out of model invocation
-// (`disable-model-invocation: true`) or user invocation
-// (`user-invocable: false`). Derived independently from source frontmatter so a
-// regression in either exclusion shows up as a set difference here.
+// skill, excluding only those that opt out of user invocation
+// (`user-invocable: false`). `disable-model-invocation` does NOT exclude a skill
+// -- it marks user-invocation-only skills, which need the slash command most.
+// Derived independently from source frontmatter so a regression in the exclusion
+// shows up as a set difference here.
 function commandStubsForPlatform(inventory: SourceInventory, target: Target): string[] {
   return inventory.skills
     .filter((skill) => !skill.cePlatforms || skill.cePlatforms.includes(target))
-    .filter((skill) => !skill.disableModelInvocation && skill.userInvocable !== false)
+    .filter((skill) => skill.userInvocable !== false)
     .map((skill) => skill.name)
     .sort()
 }

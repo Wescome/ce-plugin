@@ -36,8 +36,6 @@ describe("convertClaudeToOpenCode", () => {
       permissions: "none",
     })
 
-    // skill-one is the only opencode-eligible skill (disabled-skill is skipped,
-    // claude-only-skill is platform-filtered, agent-only-skill has user-invocable: false)
     const cmd = bundle.commandFiles.find((f) => f.name === "skill-one")
     expect(cmd).toBeDefined()
     const parsed = parseFrontmatter(cmd!.content)
@@ -45,9 +43,10 @@ describe("convertClaudeToOpenCode", () => {
     expect(parsed.body.trim()).toContain("skill-one")
     expect(parsed.body.trim()).toContain("$ARGUMENTS")
 
-    // disabled-skill must not appear
-    expect(bundle.commandFiles.find((f) => f.name === "disabled-skill")).toBeUndefined()
-    // claude-only-skill is filtered before convertSkillsToCommands -- also absent
+    // disabled-skill (disable-model-invocation) is user-invocation-only, so it
+    // still gets a slash command -- that's its only entry point.
+    expect(bundle.commandFiles.find((f) => f.name === "disabled-skill")).toBeDefined()
+    // claude-only-skill is platform-filtered before convertSkillsToCommands -- absent
     expect(bundle.commandFiles.find((f) => f.name === "claude-only-skill")).toBeUndefined()
     // agent-only-skill has user-invocable: false -- must not be exposed as a slash command
     expect(bundle.commandFiles.find((f) => f.name === "agent-only-skill")).toBeUndefined()

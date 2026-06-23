@@ -176,10 +176,14 @@ function convertCommands(commands: ClaudeCommand[]): OpenCodeCommandFile[] {
 // Generate a slash-command stub for each skill so OpenCode users can invoke
 // /ce-work, /ce-plan, etc. just like Claude Code users do.
 // The stub body delegates to the skill tool so the full skill content is loaded.
+//
+// Only `user-invocable: false` suppresses a stub. `disable-model-invocation`
+// does NOT: that flag means the skill is user-invocation-only (e.g. ce-polish,
+// whose description says "type /ce-polish to run it"), so a slash command is the
+// only entry point it has -- exactly the skill that most needs a stub.
 function convertSkillsToCommands(skills: ClaudeSkill[]): OpenCodeCommandFile[] {
   const files: OpenCodeCommandFile[] = []
   for (const skill of skills) {
-    if (skill.disableModelInvocation) continue
     if (skill.userInvocable === false) continue
     const frontmatter: Record<string, unknown> = {
       description: skill.description,
