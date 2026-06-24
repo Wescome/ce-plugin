@@ -1,8 +1,7 @@
 {
   "name": "compound-engineering-plugin",
   "owner": {
-    "name": "Kieran Klaassen",
-    "url": "https://github.com/kieranklaassen"
+    "name": "Kieran Klaassen and Trevin Chow"
   },
   "metadata": {
     "description": "Plugin marketplace for Claude Code and Codex extensions",
