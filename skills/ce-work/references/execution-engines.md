@@ -47,7 +47,7 @@ Follow the dispatch strategy in `SKILL.md` Phase 1 Step 4 (inline, serial subage
 
 Whichever path, the goal/workflow must not open a PR, finalize the session, or bypass the owning workflow's gates.
 
-Copyable goal-mode prompt (standalone — emit verbatim, substituting only the literal plan path). **Keep it thin: point to the plan's sections, never copy them.** Do not paste the plan's resolved decisions, exact verification commands, or requirements into the prompt — they live in the doc, and a copy only drifts as the plan changes. The prompt carries direction, exit criteria, and the few persistent guardrails; the document carries the detail.
+Copyable goal-mode prompt (standalone — emit verbatim, substituting only the literal plan path). **Keep it thin: point to the plan's sections, never copy them.** Do not paste the plan's resolved decisions, exact verification commands, or requirements into the prompt.
 
 ```text
 /goal Implement <plan-path> to its Definition of Done.
