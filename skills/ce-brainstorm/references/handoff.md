@@ -10,12 +10,13 @@ unified plan is written.
 The Phase 4 menu's visible option count varies by state: no unified plan
 artifact hides the review and Proof options, `OUTPUT_FORMAT=html` also hides
 the review option (ce-doc-review is markdown-only today), unresolved `Resolve
-Before Planning` hides `Plan implementation` and `Build it now`, a failing
-direct-to-work gate hides `Build it now`. Count the visible options for the
+Before Planning` hides both `Create the implementation plan` and `Ship it
+autonomously with lfg`, and the lfg option is also hidden for non-software
+brainstorms (`execution` other than `code`). Count the visible options for the
 current state and choose the rendering mode accordingly:
 
 - **4 or fewer visible:** use the platform's blocking question tool (`AskUserQuestion` in Claude Code — call `ToolSearch` with `select:AskUserQuestion` first if its schema isn't loaded; `request_user_input` in Codex; `ask_question` in Antigravity CLI (`agy`), `ask_user` in Pi (requires the `pi-ask-user` extension)). This is the default.
-- **5 or more visible:** render as a numbered list in chat. This is the narrow option-overflow fallback; trimming would hide legitimate choices (plan, review, Proof, build, refine, pause are all distinct destinations). Include a hint that free-form input is accepted ("Pick a number or describe what you want.") so the numbered list retains the blocking tool's open-endedness.
+- **5 or more visible:** render as a numbered list in chat. This is the narrow option-overflow fallback; trimming would hide legitimate choices (plan, ship, review, Proof, refine, pause are all distinct destinations). Include a hint that free-form input is accepted ("Pick a number or describe what you want.") so the numbered list retains the blocking tool's open-endedness.
 
 Never silently skip the question.
 
@@ -23,7 +24,7 @@ If `Resolve Before Planning` contains any items:
 - Ask the blocking questions now, one at a time, by default
 - If the user explicitly wants to proceed anyway, first convert each remaining item into an explicit decision, assumption, or `Deferred to Planning` question
 - If the user chooses to pause instead, present the handoff as paused or blocked rather than complete
-- Do not offer the `Plan implementation` or `Build it now` options while `Resolve Before Planning` remains non-empty
+- Do not offer the `Create the implementation plan` or `Ship it autonomously with lfg` options while `Resolve Before Planning` remains non-empty
 
 In both preambles below, the "Pick a number or describe what you want." hint applies only in numbered-list mode. When using the blocking tool, omit that line and pass the remaining stem as the question.
 
@@ -52,7 +53,7 @@ What would you like to do next? (Pick a number or describe what you want.)
 Present only the options that apply. Renumber so visible options stay contiguous starting at 1.
 
 1. **Create the implementation plan** *(recommended)* - Hand off to `ce-plan` and sharpen the requirements into a complete, testable plan. Shown only when `Resolve Before Planning` is empty.
-2. **Run it as a `/goal`** - Implement straight from the requirements as an autonomous `/goal`, with no technical-planning step. Quicker to start, but likelier to need rework or miss what a plan would catch. Shown on hosts that have goal mode — a callable goal tool (Codex `create_goal`) or a user-typed `/goal` (Claude Code): where the host can start a goal directly it begins immediately, otherwise it hands over a copyable prompt. On a host with no goal mode at all, this slot renders instead as **Build it now** - implement straight from the requirements via `ce-work`, same caveat; shown only when the direct-to-work gate found a sufficient Definition of Done in chat or the artifact. (Single skip-planning slot: most-autonomous-available — `/goal` when present, else `ce-work` — never both.)
+2. **Ship it autonomously with `lfg`** - Hand the requirements to the full autonomous pipeline: `lfg` plans (`ce-plan`), implements, simplifies, runs independent code review and applies the fixes, opens a PR, and watches CI to green — hands-off, no check-ins. It plans first (unlike a raw `/goal` straight from requirements), so it's the safer autonomous path. Best when you trust the requirements and want it built and shipped without steering. **Opens a PR and pushes a branch.** Shown only for software brainstorms (`execution: code`) with `Resolve Before Planning` empty — the same gate as option 1; for a quicker plan-then-decide flow, or to run a `/goal` yourself, pick option 1 and choose at the `ce-plan` handoff.
 3. **Pressure-test the requirements** - Dispatch reviewer agents with `ce-doc-review` to find gaps, conflicts, weak premises, and scope issues in the requirements; auto-apply safe fixes; route the rest interactively. Shown only when a markdown unified plan exists **and `OUTPUT_FORMAT=md`** — ce-doc-review's walkthrough applies markdown-only mutations (`##`/`###` heading inserts, single-file markdown edits via apply-set) and would corrupt an HTML artifact, so HTML brainstorms skip this option until ce-doc-review gains HTML-aware mutation support. Under HTML mode, surface a one-line note above the menu: `Requirements review unavailable in output:html mode — ce-doc-review is markdown-only today. Switch to output:md if you want a review pass.`
 4. **Publish to Proof — shareable link** - Publish the markdown unified plan to Every's Proof editor and get a shareable link to read, comment on, or share with others. One-way: the local doc stays canonical. Shown only when a markdown unified plan exists. **Render only when `OUTPUT_FORMAT=md`** (Proof operates on markdown and cannot ingest HTML).
 4. **Open in browser** — open the HTML unified plan locally for review and sharing. Shown only when an HTML unified plan exists. **Render only when `OUTPUT_FORMAT=html`.** Replaces "Publish to Proof" at the same slot under exclusive output mode — the artifact is either markdown OR HTML, never both, so exactly one of the two labels applies per run.
@@ -60,7 +61,7 @@ Present only the options that apply. Renumber so visible options stay contiguous
 
 There is no "done" / "pause" option — the blocking question already waits, and the user ends by dismissing it (Esc) or saying they're finished. The unified plan artifact is already saved.
 
-**Post-review nudge (subsequent rounds only):** If the user has already run `ce-doc-review` this session and residual P0/P1 findings remain unaddressed, add a one-line prose nudge adjacent to the menu (e.g., "Document review flagged 2 P1 findings you may want to address — pick \"Pressure-test the requirements\" to run another pass."). Reference the option by label, not number: the menu renumbers when `Resolve Before Planning` hides `Create the implementation plan` and the skip-planning option, so a hardcoded option number can point users at the wrong action. Do not add a separate menu option; reuse the existing `Pressure-test the requirements` option. Suppress this nudge when `OUTPUT_FORMAT=html` — that option is hidden in that mode, so the nudge would point users at a missing action.
+**Post-review nudge (subsequent rounds only):** If the user has already run `ce-doc-review` this session and residual P0/P1 findings remain unaddressed, add a one-line prose nudge adjacent to the menu (e.g., "Document review flagged 2 P1 findings you may want to address — pick \"Pressure-test the requirements\" to run another pass."). Reference the option by label, not number: the menu renumbers when `Resolve Before Planning` hides `Create the implementation plan` and the lfg option, so a hardcoded option number can point users at the wrong action. Do not add a separate menu option; reuse the existing `Pressure-test the requirements` option. Suppress this nudge when `OUTPUT_FORMAT=html` — that option is hidden in that mode, so the nudge would point users at a missing action.
 
 #### 4.2 Handle the Selected Option
 
@@ -81,32 +82,25 @@ re-scanning the repo. Do not print the closing summary first.
 Load the `ce-doc-review` skill, passing the unified plan path as the argument.
 When ce-doc-review returns "Review complete", return to the Phase 4 options
 and re-render the menu (the requirements may have changed, so re-evaluate
-`Resolve Before Planning`, the skip-planning gate, and residual findings). If
+`Resolve Before Planning`, the lfg software gate, and residual findings). If
 residual P0/P1 findings remain unaddressed, include the post-review nudge
 above the menu. Do not show the closing summary yet.
 
-**If user selects the skip-planning option ("Run it as a `/goal`", or "Build it now" on hosts without `/goal`):**
+**If user selects "Ship it autonomously with `lfg`":**
 
-This is the single skip-planning slot — execute one way only, never `ce-work`
-*and* a goal. The goal objective (however delivered) uses the requirements-only
-unified plan as authority and instructs the agent to derive its own approach,
-units, and verification (there is no Planning Contract or Verification Contract
-— this is the skip-planning path), implement to a working state and verify it,
-stop and surface any open product question, run applicable quality gates, and
-not open a PR.
+Immediately invoke the `lfg` skill in the current session via the platform's
+skill-invocation primitive, passing the unified plan artifact path as its
+argument so `lfg`'s `ce-plan` step enriches *this* requirements-only artifact in
+place rather than bootstrapping a new plan. `lfg` then owns the full pipeline
+autonomously — plan, implement (`ce-work` in `return-to-caller` mode), simplify,
+independent code review and applied fixes, commit/push/open PR, and CI watch to
+green. Do not also start a `/goal` or load `ce-work` directly — `lfg`
+orchestrates them. Unlike a goal tool, `lfg` is host-agnostic: it works wherever
+skills run (plus `git`/`gh` for the PR/CI tail, which it guards when absent).
 
-- **Host with a callable goal tool (Codex `create_goal`):** call `create_goal`
-  with that objective. The goal becomes active and the current session works
-  toward it — no copy-paste. **Do not call `update_goal`** (the goal session
-  marks its own completion) and **do not also load `ce-work`**.
-- **Host with only a user-typed `/goal` (Claude Code):** print that objective as
-  one copyable `/goal` prompt and tell the user to paste it at the start of a
-  message (a skill cannot issue `/goal` itself there). Do not also load
-  `ce-work`. After printing, return to the Phase 4 options.
-- **Host with no goal mode at all:** only when the skip-planning gate explicitly
-  found a sufficient Definition of Done in chat or the artifact, immediately
-  load the `ce-work` skill in the current session using the finalized
-  brainstorm output as context; pass the unified plan path when one exists.
+Where the host exposes no skill-invocation primitive, print the `lfg <plan-path>`
+invocation for the user to run and note that it will plan, build, review, and
+open a PR from this artifact.
 
 Do not print the closing summary first.
 
@@ -126,7 +120,7 @@ the URL to the user — they can open it to read, comment, or share with others
 — then return to the Phase 4 options and re-render the menu. This is a one-way
 publish: the local doc stays canonical and nothing syncs back, so option
 eligibility is unchanged (no need to re-evaluate `Resolve Before Planning`,
-the direct-to-work gate, or residual findings on account of Proof).
+the lfg software gate, or residual findings on account of Proof).
 
 If the upload fails (network error, Proof API down), retry once after a short wait. If it still fails, tell the user the upload didn't succeed and briefly explain why, then return to the Phase 4 options — don't leave them wondering why the option did nothing.
 

@@ -91,10 +91,13 @@ describe("unified plan artifact contract", () => {
   test("brainstorm handoff passes the unified plan path to ce-plan", () => {
     expect(brainstormHandoff).toContain("Pass the unified")
     expect(brainstormHandoff).toContain("Recommended next step: `ce-plan <plan artifact path>`")
-    // Recommended path is planning; the skip-planning execution slot is a single
-    // option (/goal when available, else ce-work) gated to sufficient definition.
+    // Recommended path is interactive planning; the autonomous slot is lfg
+    // (plan-first full ship), not a skip-planning /goal.
     expect(brainstormHandoff).toContain("Create the implementation plan")
-    expect(brainstormHandoff).toMatch(/single skip-planning slot/i)
+    expect(brainstormHandoff).toContain("Ship it autonomously with `lfg`")
+    expect(brainstormHandoff).toMatch(/passing the unified plan artifact path as its\s+argument/i)
+    // The skip-planning /goal slot was removed in favor of plan-first lfg.
+    expect(brainstormHandoff).not.toContain("skip-planning slot")
   })
 
   test("ce-plan enriches unified plans in place and preserves legacy inputs", () => {
