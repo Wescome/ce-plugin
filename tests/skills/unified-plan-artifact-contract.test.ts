@@ -247,11 +247,12 @@ describe("unified plan artifact contract", () => {
     // self-contained — but it lives in the emitted template (ce-work's
     // execution-engines.md), not as a baked plan-sections doc section.
     expect(ceWorkEngines).toMatch(/Done when the transcript shows/i)
-    // The standalone /goal prompt is plan-agnostic and hardcodes no PR directive —
-    // PR/shipping follows repo/user conventions. (Structural no-PR lives only in
-    // return-to-caller mode, asserted separately below.)
+    // The standalone /goal prompt is plan-agnostic and hardcodes no PR directive;
+    // instead it carries the PR-precedence line (plan strategy, repo/user override).
+    // (Structural no-PR lives only in return-to-caller mode, asserted separately below.)
     expect(ceWorkEngines).toMatch(/plan-agnostic/i)
-    expect(ceWorkEngines).toMatch(/Do not add any open-a-PR/i)
+    expect(ceWorkEngines).toMatch(/don't hardcode an open-a-PR/i)
+    expect(ceWorkEngines).toMatch(/Follow the plan's PR\/landing strategy if it defines one/i)
     // plan-sections no longer prescribes a launch-prompt/Goal Launch Block section.
     expect(planSections).not.toMatch(/evaluator-complete/i)
     expect(planSections).not.toContain("Human standalone launch")
