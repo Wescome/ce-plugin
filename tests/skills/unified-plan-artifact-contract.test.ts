@@ -259,6 +259,17 @@ describe("unified plan artifact contract", () => {
     expect(planSections).toMatch(/blocker resolution \/\s*planning/i)
   })
 
+  test("large plans get a navigation-only Unit Index, gated to ~10+ units", () => {
+    expect(planSections).toMatch(/Unit Index \(large plans only/i)
+    expect(planSections).toMatch(/ten or more\s+units/i)
+    // navigation-only, not a content restatement (avoids the Reader-Index anti-pattern)
+    expect(planSections).toMatch(/navigation aid only/i)
+    expect(planSections).toMatch(/unit bodies\s+stay authoritative/i)
+    expect(planSections).toMatch(/files touched/i)
+    // gated: omitted on small plans so it isn't ceremony
+    expect(planSections).toMatch(/Omit it below ~?10 units/i)
+  })
+
   test("ce-plan records a Product Contract preservation note on in-place enrichment", () => {
     expect(planSkill).toContain("Product Contract preservation")
     expect(planSkill).toMatch(/Product Contract unchanged|changed: .*R-IDs/)

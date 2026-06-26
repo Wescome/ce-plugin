@@ -180,6 +180,16 @@ present. They carry the contracts downstream consumers depend on.
   each is independently executable. Each unit names Goal, Requirements,
   Files, Approach, Test Scenarios, and Verification. `ce-work` and goal-mode
   executors consume these units.
+  - **Unit Index (large plans only, ~10+ units).** When the plan has roughly
+    ten or more units, open the section with a compact navigation table — one
+    row per unit: **U-ID · one-line title · files touched · depends-on**. It
+    lets an executor map units to files and resolve dependency order without
+    scanning every unit body. It is a **navigation aid only**: the unit bodies
+    stay authoritative, it carries nothing beyond those four fields (no
+    approach, tests, or rationale), and `files touched` is the key/primary
+    paths, not an exhaustive restatement. **Omit it below ~10 units** — there
+    the per-unit `Dependencies`/`Files` (and any sequencing or dependency
+    diagram) already suffice, and an index would be ceremony.
 - **Verification Contract** — repo-specific commands and quality gates,
   including which tests prove the plan, when `release:validate` applies, and
   what behavioral skill evaluation is required. Avoid generic "run tests"
