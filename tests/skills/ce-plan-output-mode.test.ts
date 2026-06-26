@@ -52,7 +52,8 @@ describe("ce-plan output:html mode", () => {
       "SKILL.md must contain an Output Mode resolution section that establishes OUTPUT_FORMAT before downstream phases reference it.",
     ).toBe(true)
 
-    // Precedence must be stated: CLI arg > config > default, with a pipeline
+    // Precedence must be stated: in-prompt request > user-stated preference >
+    // config > default, with a pipeline
     // override. All three signals must be named so an agent reading the file
     // resolves correctly without consulting a reference.
     const phaseStart = SKILL_BODY.indexOf("#### 0.0")
@@ -93,6 +94,26 @@ describe("ce-plan output:html mode", () => {
       /do not open or search instruction files|already (present )?in your context/i.test(phaseRegion),
       "The stated-preference tier must act on context only, not instruct reading instruction files.",
     ).toBe(true)
+    // The in-prompt format trigger must be harness-neutral — reason over the
+    // user's prompt, NOT a Claude-only $ARGUMENTS token (Cursor uses $1/$2; Kiro
+    // drops $ARGUMENTS) — and a format named as subject matter must not be
+    // mistaken for a doc-format request.
+    expect(
+      /reason over the user's prompt/i.test(phaseRegion),
+      "Phase 0.0 step 1 must reason over the user's prompt (harness-neutral), not a $ARGUMENTS token.",
+    ).toBe(true)
+    expect(
+      /subject matter|not a doc-format request/i.test(phaseRegion),
+      "Phase 0.0 step 1 must guard against treating a format named as subject matter as a doc-format request.",
+    ).toBe(true)
+    const stepOne = phaseRegion.slice(
+      phaseRegion.indexOf("In-prompt request"),
+      phaseRegion.indexOf("User-stated preference"),
+    )
+    expect(
+      stepOne.includes("$ARGUMENTS"),
+      "The output-format trigger must not depend on the Claude-only $ARGUMENTS token.",
+    ).toBe(false)
   })
 
   test("token-parsing convention names both mode: and output: as flag prefixes", () => {
