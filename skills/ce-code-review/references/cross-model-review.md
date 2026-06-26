@@ -20,7 +20,31 @@ else XHOST=unknown; XPEER=""; fi
 echo "XMODEL_HOST: $XHOST  PEER: ${XPEER:-none}"
 ```
 
-Peer mapping: Cursor and Claude both prefer **codex** (a guaranteed different model family/process — Cursor's own model is configurable, so codex is the reliable cross-model peer); Codex prefers **claude**. Each host is matched on its own session signals, with a fallback marker because the primary one is not set in every release/mode: Cursor = `CURSOR_AGENT` or `CURSOR_CONVERSATION_ID`; Claude Code = `CLAUDECODE=1`; Codex = any of `CODEX_SANDBOX`/`CODEX_SANDBOX_NETWORK_DISABLED` (set by `codex exec -s`), `CODEX_SESSION_ID` (interactive CLI), or `CODEX_THREAD_ID`/`CODEX_CI` (Codex web/API/CI surfaces). Codex exposes different markers per surface and none is universal, so check the union — miss them all and a real Codex session falls through to `unknown` and the pass silently never runs. Presence of the *other* CLI's home (e.g. `CODEX_HOME`) is NOT a host signal — it is exported even inside a Claude session. `unknown` → skip the pass silently. If a new host/release changes these markers, the failure mode is a silent skip, not a wrong peer — verify the markers when adding a host.
+That block is **Tier A — environment markers**, the fast common path. Peer mapping: Cursor and Claude both prefer **codex** (Cursor's own model is configurable, so codex is the reliable cross-model peer); Codex prefers **claude**. Each host has a primary marker plus a fallback because the primary is not set in every release/mode: Cursor = `CURSOR_AGENT`/`CURSOR_CONVERSATION_ID`; Claude Code = `CLAUDECODE=1`; Codex = any of `CODEX_SANDBOX`/`CODEX_SANDBOX_NETWORK_DISABLED` (CLI `-s`), `CODEX_SESSION_ID` (interactive CLI), or `CODEX_THREAD_ID`/`CODEX_CI` (web/API/CI). Do **not** use the *other* CLI's home (e.g. `CODEX_HOME`) — it leaks into a Claude session and would misfire. There is no single canonical marker Codex sets across every surface, and `shell_environment_policy` / cloud / IDE inheritance can strip env vars from subprocesses, so a Tier-A miss is expected — not a bug to fix by chasing marker #7, #8.
+
+**Tier B — process-ancestry probe (runs only when Tier A returned `unknown`).** Markers can be stripped, but the launching CLI still sits in the process tree. Walk it before giving up:
+
+```bash
+if [ "$XHOST" = "unknown" ]; then
+  _pid=${PPID:-0}; _depth=0
+  while [ "${_pid:-0}" -gt 1 ] 2>/dev/null && [ "$_depth" -lt 20 ]; do
+    _comm=$(ps -o comm= -p "$_pid" 2>/dev/null | sed 's:.*/::')
+    case "$_comm" in
+      cursor-agent)  XHOST=cursor; XPEER=codex;  break ;;
+      codex|codex-*) XHOST=codex;  XPEER=claude; break ;;
+      claude)        XHOST=claude; XPEER=codex;  break ;;
+    esac
+    _pid=$(ps -o ppid= -p "$_pid" 2>/dev/null | tr -dc '0-9')
+    [ -z "$_pid" ] && break
+    _depth=$((_depth + 1))
+  done
+  echo "XMODEL_HOST (after probe): $XHOST  PEER: ${XPEER:-none}"
+fi
+```
+
+Match the process **basename** only (via `ps -o comm=`), never full args — a `~/.claude/...` path inside some unrelated command's args must not flip the host. `ps -o comm=`/`-o ppid=` work on macOS, Linux, and WSL. If both tiers miss, `unknown` → skip the pass silently: a missed host is never a *wrong* peer, so this never mis-routes, it only declines.
+
+(A would-be **Tier 0 — a launcher-injected sentinel** like `CE_HOST=codex` — is more reliable than either, but only when you control how the host process starts. For self-identification from inside an already-running host we do not, so it does not apply here; it is the right tool only if a future install path can stamp the host at launch.)
 
 ## Step 2 — Peer preflight (installed + authed)
 
