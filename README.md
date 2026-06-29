@@ -135,7 +135,7 @@ The `compound-engineering` plugin currently ships 26 skills and 0 standalone age
 | `/ce-simplify-code` | Simplify recent code changes |
 | `/ce-polish` | Start a dev server and iterate on UX polish |
 | `/ce-proof` | Create, edit, and share Proof documents |
-| `/ce-dogfood-beta` | Diff-scoped browser QA of the active branch |
+| `/ce-dogfood` | Hands-off diff-scoped browser QA of the active branch, with autonomous fixes |
 | `/lfg` | Full autonomous engineering workflow |
 
 ---
