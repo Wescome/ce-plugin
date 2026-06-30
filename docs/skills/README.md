@@ -87,6 +87,14 @@ Invoked when a specific need arises — not part of any chain.
 
 ---
 
+## Autonomous Pipeline
+
+| Skill | Description |
+|-------|-------------|
+| [`/lfg`](./lfg.md) | Run the full hands-off engineering pipeline from planning through a green PR — plan, work, simplify, review, fix, browser-test, ship, and watch CI |
+
+---
+
 ## Frontend Design
 
 | Skill | Description |
@@ -118,4 +126,4 @@ Invoked when a specific need arises — not part of any chain.
 
 ## See also
 
-For the complete catalog of skills (including those without dedicated docs here), see [`README.md`](../../README.md). Each skill's authoritative runtime spec is in `skills/<skill>/SKILL.md`.
+For the top-level install and usage guide, see [`README.md`](../../README.md). Each skill's authoritative runtime spec is in `skills/<skill>/SKILL.md`.
