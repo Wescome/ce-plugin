@@ -75,8 +75,8 @@ When changes touch naturally distinct concerns (e.g., backend models + frontend 
 
 Every weird branch state has an explicit branch in the decision tree:
 
-- Detached HEAD → ask whether to create a feature branch
-- On default branch with unpushed commits → ask whether to create a feature branch
+- Detached HEAD → automatically create a feature branch from current `HEAD`
+- On default branch with work to do → automatically create a feature branch, asking only when unpushed local commits create a real carry-forward decision
 - On default branch, all pushed, no PR → "no feature branch work" and stop
 - Feature branch, no upstream → push and continue
 - Feature branch, all pushed, no open PR → skip commit/push, generate description, open PR
