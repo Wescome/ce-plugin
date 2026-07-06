@@ -2,5 +2,7 @@
   "docs/solutions/logic-errors/governance-hook-macos-tmpdir-symlink-path-mismatch.md": "Learning:ca6b609c40674c9a846ec88fc22e0e60",
   "docs/solutions/logic-errors/governance-hook-macos-tmpdir-symlink-path-mismatch.md#hypothesis": "Hypothesis:e5dc6f0591ad9c2b995c9453734354dc",
   "docs/solutions/logic-errors/governance-hook-macos-tmpdir-symlink-path-mismatch.md#amendment": "Amendment:b0c51b77373f67a3e1be71ee7b3811a9",
-  "#worktree": "ExecutionTrace:b74dd17fcd508b18842d583f7a74dc53"
+  "#worktree": "ExecutionTrace:5fbba551fe114461b5436dc6c7279996",
+  "STRATEGY.md": "Specification:85775e4ee7fef78ee2f07d391596b101",
+  "docs/plans/2026-07-06-001-feat-concurrent-multi-feature-fanout-plan.md": "Specification:de777dc43f253855d925c3c599a52118"
 }

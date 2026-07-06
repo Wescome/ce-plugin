@@ -1,0 +1,36 @@
+{
+  "id": "ExecutionTrace:5f787ee82afd18d8c7959507993e96e6",
+  "type": "ExecutionTrace",
+  "lineage": "ExecutionTrace:e062a90c9091c6dc21b6ff55eb6ef584",
+  "sourceKey": "#worktree",
+  "createdAt": "2026-07-06T19:37:34.021Z",
+  "content": {
+    "branch": "main",
+    "head": "3ff6b5bb3f3aae7cfbef0ee472082c6bd1ea4d79",
+    "files": [
+      "docs/plans/2026-07-06-001-feat-concurrent-multi-feature-fanout-plan.md"
+    ],
+    "diffSha": "blob:466544d9773a1eb3848f06a754c9a8b3",
+    "stat": "docs/.governance/.by-source.json | 4 +++-\n 1 file changed, 3 insertions(+), 1 deletion(-)",
+    "governedBy": "Specification:c18aadfa4a2640c3ddad9af61153016e",
+    "governedByCandidates": [
+      "Specification:c18aadfa4a2640c3ddad9af61153016e",
+      "Specification:d579dbf437c4b1f309f9e6b40b2fe761",
+      "Specification:3c1956ba668156b1f941ccecd9a31924",
+      "Specification:1eb2397f8477d69164013ecd68d42a5a",
+      "Specification:72093599d987df5bb85c32c8ae19053e",
+      "Specification:14045b7d77444ac01aa95d8518d9f4af",
+      "Specification:dd5693d55f7f5ac647bf0c939e065e06",
+      "Specification:4635e75218256bca853937d4547ff85c",
+      "Specification:06bc29a675745d71312007d0ca631f25",
+      "Specification:8dbd1d36016593c3856aa43183285abe",
+      "Specification:e82d2881d8f8733d4134b728f5ba9491",
+      "Specification:d7b413d43596e16e2554806252bc2433",
+      "Specification:bba89467b88610ceefeae39bc892c557",
+      "Specification:5929b007ab4563015d2dea5ec82aea90",
+      "Specification:ddc00722d251485e68c1f97c3223d5d2",
+      "Specification:9448ff1de735229f0563559cf3aa2fae",
+      "Specification:85775e4ee7fef78ee2f07d391596b101"
+    ]
+  }
+}

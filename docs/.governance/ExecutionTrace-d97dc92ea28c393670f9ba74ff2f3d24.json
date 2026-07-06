@@ -1,0 +1,24 @@
+{
+  "id": "ExecutionTrace:d97dc92ea28c393670f9ba74ff2f3d24",
+  "type": "ExecutionTrace",
+  "lineage": "ExecutionTrace:5b200a283f33c68b0e72e6ba233131a6",
+  "sourceKey": "#worktree",
+  "createdAt": "2026-07-06T19:12:24.714Z",
+  "content": {
+    "branch": "main",
+    "head": "3ff6b5bb3f3aae7cfbef0ee472082c6bd1ea4d79",
+    "files": [
+      "docs/plans/2026-07-06-001-feat-concurrent-multi-feature-fanout-plan.md"
+    ],
+    "diffSha": "blob:10255a24268267acfb15d54d510c468d",
+    "stat": "docs/.governance/.by-source.json | 4 +++-\n 1 file changed, 3 insertions(+), 1 deletion(-)",
+    "governedBy": "Specification:bba89467b88610ceefeae39bc892c557",
+    "governedByCandidates": [
+      "Specification:bba89467b88610ceefeae39bc892c557",
+      "Specification:5929b007ab4563015d2dea5ec82aea90",
+      "Specification:ddc00722d251485e68c1f97c3223d5d2",
+      "Specification:9448ff1de735229f0563559cf3aa2fae",
+      "Specification:85775e4ee7fef78ee2f07d391596b101"
+    ]
+  }
+}

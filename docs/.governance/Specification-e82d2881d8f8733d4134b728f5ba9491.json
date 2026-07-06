@@ -1,0 +1,11 @@
+{
+  "id": "Specification:e82d2881d8f8733d4134b728f5ba9491",
+  "type": "Specification",
+  "lineage": "Specification:d7b413d43596e16e2554806252bc2433",
+  "sourceKey": "docs/plans/2026-07-06-001-feat-concurrent-multi-feature-fanout-plan.md",
+  "createdAt": "2026-07-06T19:15:30.790Z",
+  "content": {
+    "source": "docs/plans/2026-07-06-001-feat-concurrent-multi-feature-fanout-plan.md",
+    "sha": "blob:a4770cb145db69218538fa73e67cb26f"
+  }
+}
