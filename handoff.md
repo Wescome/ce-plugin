@@ -2,34 +2,25 @@
 
 ## Where things stand
 
-Working on `STRATEGY.md`'s Execution scale-out track: a `Workflow`-driven concurrent multi-feature fan-out for `Wescome/ce-plugin`. Ran the full chain rigorously — `ce-brainstorm` → `ce-doc-review` (interactive) → `ce-plan` → `ce-doc-review` (headless) → live empirical spike via the `Workflow` tool — rather than hand-rolling any of it.
+Working on `STRATEGY.md`'s Execution scale-out track: a `Workflow`-driven concurrent multi-feature fan-out for `Wescome/ce-plugin`. Ran the full chain rigorously — `ce-brainstorm` → `ce-doc-review` (interactive) → `ce-plan` → `ce-doc-review` (headless) → live empirical spike via the `Workflow` tool → fresh-session re-verification — rather than hand-rolling any of it.
 
-**Plan artifact (not yet committed):** `docs/plans/2026-07-06-001-feat-concurrent-multi-feature-fanout-plan.md`. `artifact_readiness: implementation-ready`. Doc-reviewed twice, then corrected against a live spike (run id `wf_e35cf868-300`) that empirically confirmed: `.claude/workflows/<name>` resolution works, `Workflow` scripts have zero filesystem access (so KTD1's self-registration marker-file design is required, not just cautious), and worktree/branch dispatch mechanics work as designed.
+**Plan artifact:** `docs/plans/2026-07-06-001-feat-concurrent-multi-feature-fanout-plan.md`. `artifact_readiness: implementation-ready`. Doc-reviewed twice, corrected against a live spike (run id `wf_e35cf868-300`), then closed out in a follow-up fresh session (run id `wf_2e6bc496-d78`) that re-confirmed `lfg` dispatch now works and settled the remaining design question.
 
-## The one open thread — needs a fresh session to close
+## The `lfg` question is now closed — no open thread
 
-The spike also hit `agent()` dispatch of `/lfg` returning `"Skill lfg cannot be used with Skill tool due to disable-model-invocation"`. I initially treated that as a platform law and wrote the plan around a permanent hand-assembled chain (`ce-work → ce-simplify-code → ce-code-review → ce-commit-push-pr`, no `lfg`, no CI-watch-and-repair).
+Prior sessions chased down an `agent()`-dispatch block on `/lfg` (`"Skill lfg cannot be used with Skill tool due to disable-model-invocation"`), traced it to `skills/lfg/SKILL.md`'s own `disable-model-invocation: true` flag, and removed it (commit `09a74ecb`). This session, in a brand-new session (so the plugin loaded fresh from disk), re-ran the dispatch check via a `Workflow` script and confirmed: `agent()` can now invoke `/lfg` successfully — no error, full skill body loaded.
 
-That was wrong — the flag was just a line in this fork's own `skills/lfg/SKILL.md` frontmatter. Removed it in commit `09a74ecb` (pushed). But **this session's plugin cache still enforces the old flag value** (Claude Code caches plugin skill definitions at session start — confirmed via direct `grep` against the cached copy), so the fix can't be re-tested live in this session.
+That reopened whether U5 (the fan-out driver, not yet built) should dispatch `lfg` directly instead of hand-assembling `ce-work → ce-simplify-code → ce-code-review → ce-commit-push-pr`, since `lfg` would recover its CI-watch-and-repair step (Phase 9) for free. Checked `lfg`'s own steps (`skills/lfg/SKILL.md`) against `ce-plan`'s behavior (`skills/ce-plan/SKILL.md:165`) and found: `lfg` step 1 unconditionally invokes `ce-plan`, with no branch to skip it for an already-`implementation-ready` plan — and `ce-plan` treats that case as a resume/deepening target, not a no-op. R4's fan-out population is specifically already-ready plans. So dispatching raw `lfg` would force an unwanted re-deepening pass on every item, trading the hand-assembled chain's one known gap (no CI-watch) for a different, unrequested behavior change — not a clean win.
 
-**First thing next session should do:** re-run the R8(b) dispatch check — have a `Workflow` script `agent()`-dispatch `/lfg` and see if it now succeeds. Then:
-- If it now works: reconsider U5's design — dispatching `lfg` directly recovers its CI-watch-and-repair (Phase 9) for free, which the current hand-assembled default doesn't have. Update the plan's Key Decision, R1, R8, Confirmed Facts, Scope Boundaries accordingly (all currently flagged "pending re-verification," not settled either way).
-- If it's still blocked: something else is going on beyond the flag — investigate further before concluding.
+**Final decision, recorded in the plan:** the driver hand-assembles the chain. This is now a settled design choice, not a placeholder pending re-verification. The plan document's Goal Capsule, Product Contract Summary, Key Decisions, R1, R8, Success Criteria, Scope Boundaries, Sources/Research, Confirmed Facts, U4's Consequence, U5's Goal/Approach, the Verification Contract table, and Definition of Done were all updated to reflect this — no more "pending"/"unverified"/"undecided" language remains on this thread.
 
-The plan document already has this framed honestly throughout (search it for "pending" / "re-verification") — don't need to re-litigate, just close the check and update those spots to their final answer.
+**Next step:** build U5 (`.claude/workflows/concurrent-fanout.mjs`) plus U1-U3 (the governance fixes it depends on) per the plan's Implementation Units — nothing is blocked or waiting on external verification anymore.
 
 ## Uncommitted state on `main` right now
 
-`git status` shows ~86 uncommitted files, mostly `docs/.governance/ExecutionTrace-*.json` and `Specification-*.json` nodes plus a modified `.by-source.json` — these are the governance hooks (`hooks/emit-governance.mjs`, `hooks/emit-trace.mjs`) firing as a side effect of every Edit/Write this session, since this session worked directly on `main` rather than in a worktree. Also uncommitted: the plan file itself.
-
-Nothing here is broken — it's the governance layer working as designed — but it hasn't been reviewed/committed yet. Decide next session whether to commit as one batch, prune, or let `ce-compound` process it.
-
-## Also landed this session (already committed/pushed)
-
-- Two real governance bugs fixed in `lib/governance/core.mjs`: macOS symlink path-mismatch (`realpathSync` both sides), and a self-referential `ExecutionTrace` diff bug (now excludes `docs/.governance` from the git diff/status/stat calls, not just the post-hoc file list).
-- `STRATEGY.md` written (one-time authorized hand-write, not a hand-rolled skill output).
-- `docs/design-briefs/ce-plugin-architecture-and-stage5-roadmap.md` expanded with the governance layer deep-dive and a 4-phase Stage 5 roadmap.
-- `skills/lfg/SKILL.md`: removed `disable-model-invocation: true` (commit `09a74ecb`) — see open thread above.
+- `docs/plans/2026-07-06-001-feat-concurrent-multi-feature-fanout-plan.md` — this session's edits (the `lfg` decision closure above). Not yet committed — ask before committing per repo convention.
+- `docs/.governance/.by-source.json` (modified) and several new `docs/.governance/ExecutionTrace-*.json` / `Specification-*.json` files — governance hooks firing on this session's Read/Edit calls, same mechanism as before, working as designed. Harmless to commit alongside the plan update, or to leave for the next session to fold in.
+- This `handoff.md` edit itself.
 
 ## Standing operating notes (already in memory, not repeating in full)
 
