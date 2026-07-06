@@ -1,0 +1,16 @@
+{
+  "id": "ExecutionTrace:b74dd17fcd508b18842d583f7a74dc53",
+  "type": "ExecutionTrace",
+  "lineage": "ExecutionTrace:98a056a95f334a20d824010743ef7126",
+  "sourceKey": "#worktree",
+  "createdAt": "2026-07-06T17:08:13.148Z",
+  "content": {
+    "branch": "main",
+    "head": "8848609664aa7946520af212c164cb0a6e117e66",
+    "files": [],
+    "diffSha": "blob:df8e1b5ee69892daf2975ecea22fe855",
+    "stat": "docs/.governance/.by-source.json | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)",
+    "governedBy": null,
+    "governedByCandidates": []
+  }
+}

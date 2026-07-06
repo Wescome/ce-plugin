@@ -1,0 +1,18 @@
+{
+  "id": "ExecutionTrace:3256c371668d4709a3ce155648b1acc0",
+  "type": "ExecutionTrace",
+  "lineage": "ExecutionTrace:02a718039665af6a892aa56d666b7ddf",
+  "sourceKey": "#worktree",
+  "createdAt": "2026-07-06T16:58:21.251Z",
+  "content": {
+    "branch": "main",
+    "head": "76e4e0d4f2698b685faa31b2d35bd3f242ef57de",
+    "files": [
+      "docs/design-briefs/"
+    ],
+    "diffSha": "blob:77859aff7a4d5c6ed0d6c5215a198a78",
+    "stat": "docs/.governance/.by-source.json | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)",
+    "governedBy": null,
+    "governedByCandidates": []
+  }
+}
