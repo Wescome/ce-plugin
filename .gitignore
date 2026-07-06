@@ -6,6 +6,7 @@ todos/
 .worktrees
 .context/
 .claude/worktrees/
+.ce-fanout-plan
 __pycache__/
 *.pyc
 

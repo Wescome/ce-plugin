@@ -2,26 +2,41 @@
 
 ## Where things stand
 
-Working on `STRATEGY.md`'s Execution scale-out track: a `Workflow`-driven concurrent multi-feature fan-out for `Wescome/ce-plugin`. Ran the full chain rigorously — `ce-brainstorm` → `ce-doc-review` (interactive) → `ce-plan` → `ce-doc-review` (headless) → live empirical spike via the `Workflow` tool → fresh-session re-verification — rather than hand-rolling any of it.
+U1, U2, U3, and U5 of the concurrent multi-feature fan-out plan (`docs/plans/2026-07-06-001-feat-concurrent-multi-feature-fanout-plan.md`) are built, tested, code-reviewed, and shipped via PR. Branch: `feat/concurrent-fanout-driver`, currently checked out, working tree clean. **PR: https://github.com/Wescome/ce-plugin/pull/1** (open, not yet merged).
 
-**Plan artifact:** `docs/plans/2026-07-06-001-feat-concurrent-multi-feature-fanout-plan.md`. `artifact_readiness: implementation-ready`. Doc-reviewed twice, corrected against a live spike (run id `wf_e35cf868-300`), then closed out in a follow-up fresh session (run id `wf_2e6bc496-d78`) that re-confirmed `lfg` dispatch now works and settled the remaining design question.
+**Repo footgun worth remembering:** `origin` is `Wescome/ce-plugin` (this fork); `upstream` is `EveryInc/compound-engineering-plugin`. `gh pr create` with no `--repo` flag silently defaults to the **upstream parent**, not the fork — it failed once this session with a confusing "no commits between" error before I caught it and re-ran with `--repo Wescome/ce-plugin` explicitly. Always pass `--repo Wescome/ce-plugin` on any `gh pr`/`gh issue` command in this repo.
 
-## The `lfg` question is now closed — no open thread
+## What's in PR #1
 
-Prior sessions chased down an `agent()`-dispatch block on `/lfg` (`"Skill lfg cannot be used with Skill tool due to disable-model-invocation"`), traced it to `skills/lfg/SKILL.md`'s own `disable-model-invocation: true` flag, and removed it (commit `09a74ecb`). This session, in a brand-new session (so the plugin loaded fresh from disk), re-ran the dispatch check via a `Workflow` script and confirmed: `agent()` can now invoke `/lfg` successfully — no error, full skill body loaded.
+- **U1/U2** (`lib/governance/core.mjs`): `resolveSpecification(root, planRelPath, preloadedIdx)` resolves a plan's Specification via `.by-source.json`'s path-keyed index before falling back to the old repo-wide newest-inference (`latestSpecification`). `emitExecutionTrace`'s `sourceKey` is now `#worktree:<branch>` instead of a hardcoded constant, so concurrent worktrees don't collide.
+- **U3** (`hooks/emit-trace.mjs`): reads a new `.ce-fanout-plan` marker file (gitignored) at the worktree root when present, passing its contents through to `resolveSpecification`. Absent marker → unchanged prior behavior.
+- **U5** (`.claude/workflows/concurrent-fanout.mjs`, new): the actual driver. Takes `args` (an array of plan paths or Specification ids), rejects literal duplicates, caps at 20 items, and dispatches `lfg <resolved-plan-path>` per item concurrently via `parallel()`, each with `isolation: "worktree"`. Each dispatched agent self-registers the `.ce-fanout-plan` marker as its first action (the driver itself has zero filesystem access — confirmed empirically), then runs `lfg` end to end, then `ce-compound mode:headless` on a shipped outcome. Returns a structured `{status, planPath, summary, prUrl, branch}` per item.
+- Governance test suite: `node hooks/test-governance.mjs` — 23 → 33 real assertions, all passing. `bun test`'s pre-existing baseline (673 pass / 37 fail from an unrelated missing `js-yaml` dep) is unchanged.
+- Full `ce-code-review` (9 personas + a cross-model Codex adversarial pass) ran against the branch. Fixed: a P0 (`ce-compound` was invoked with no mode token — would hang on a blocking question with no human present in an unattended worktree; now `mode:headless`), a P1 corroborated by two reviewers (dispatch thunks had no per-item `.catch()`, so a thrown/rejected `agent()` call wasn't reconciled into a structured `errored` result — fixed), a P1 **empirically reproduced live** (a literal-duplicate item in `args` causes two worktrees to independently mint different Specification ids under the same `.by-source.json` key — a real `add/add` merge conflict, not the "pure key additions" the plan's original Key Decision assumed — fixed via duplicate rejection), plus smaller P2/P3s (marker-read error handling, a test gap, a maintainability duplication). Everything *not* fixed is written down with reasoning in the plan doc's **Scope Boundaries** section (search for "Known v1 limitations surfaced by `ce-code-review`") — don't re-litigate those, they're deliberate, not overlooked.
 
-That reopened whether U5 (the fan-out driver, not yet built) should dispatch `lfg` directly instead of hand-assembling `ce-work → ce-simplify-code → ce-code-review → ce-commit-push-pr`, since `lfg` would recover its CI-watch-and-repair step (Phase 9) for free. Checked `lfg`'s own steps (`skills/lfg/SKILL.md`) against `ce-plan`'s behavior (`skills/ce-plan/SKILL.md:165`) and found: `lfg` step 1 unconditionally invokes `ce-plan`, with no branch to skip it for an already-`implementation-ready` plan — and `ce-plan` treats that case as a resume/deepening target, not a no-op. R4's fan-out population is specifically already-ready plans. So dispatching raw `lfg` would force an unwanted re-deepening pass on every item, trading the hand-assembled chain's one known gap (no CI-watch) for a different, unrequested behavior change — not a clean win.
+## The one open thread — needs a fresh session
 
-**Final decision, recorded in the plan:** the driver hand-assembles the chain. This is now a settled design choice, not a placeholder pending re-verification. The plan document's Goal Capsule, Product Contract Summary, Key Decisions, R1, R8, Success Criteria, Scope Boundaries, Sources/Research, Confirmed Facts, U4's Consequence, U5's Goal/Approach, the Verification Contract table, and Definition of Done were all updated to reflect this — no more "pending"/"unverified"/"undecided" language remains on this thread.
+The plan's own Verification Contract requires **AE5: a real two-item concurrent run, full pipeline** — this has **not been run yet**. It's the last unchecked box in the plan's Definition of Done.
 
-**Next step:** build U5 (`.claude/workflows/concurrent-fanout.mjs`) plus U1-U3 (the governance fixes it depends on) per the plan's Implementation Units — nothing is blocked or waiting on external verification anymore.
+**Why it needs a fresh session, not this one:** the `concurrent-fanout.mjs` driver depends entirely on dispatching `/lfg` via `agent()`. Earlier this session, after empirically confirming (and fixing) that this session's *installed plugin cache* was stale relative to the `lfg` fix, a same-session re-test of `agent()` dispatching `/lfg` **still failed** with the same `disable-model-invocation` error — because Claude Code loads plugin/skill definitions into memory once at session start, and that stale snapshot propagates into `Workflow`-dispatched sub-agents too, not just the top-level session. Only a genuinely new session loads the corrected state.
 
-## Uncommitted state on `main` right now
+**First thing next session should do:**
+1. Decide whether to test against the still-open PR branch or wait for merge. `.claude/workflows/<name>` resolves relative to the current checkout, so either `git checkout feat/concurrent-fanout-driver` first, or merge PR #1 to `main` first and stay on `main` — either works, merging first is cleaner if the PR is ready.
+2. Pick two real target plans. Already-`implementation-ready`, unbuilt candidates found this session (still true unless something changed):
+   - `docs/plans/2026-06-28-001-feat-ce-pov-skill-plan.md`
+   - `docs/plans/2026-07-02-001-feat-ce-sweep-skill-plan.md`
+   - `docs/plans/2026-07-02-002-feat-ce-explain-skill-plan.md`
+   - `docs/plans/2026-06-29-001-feat-shared-repo-grounding-cache-plan.md`
+   - `docs/plans/2026-06-18-001-refactor-unified-plan-doc-artifact-plan.md`
+3. Invoke: `Workflow({ name: "concurrent-fanout", args: ["<plan-path-1>", "<plan-path-2>"] })`.
+4. **This is a real, consequential run** — two real worktrees, two full `lfg` pipelines (implementation, review, browser test, real `git push`, real PR creation, CI-watch-and-repair), not a dry run. That's expected and already authorized (the user chose this path explicitly), but worth being deliberate about timing/attention since it opens real PRs autonomously.
+5. Watch for exactly what the Verification Contract asks: AE1 (one item's block doesn't stop the other), AE3 (a pre-existing unresolved refuted Verdict blocks a new worktree, accepted v1 blast radius), AE5 (both items reach a terminal state — shipped or explicitly blocked — never a hang).
+6. Once confirmed, update the plan doc's Verification Contract row and Definition of Done checkbox for the "Fan-out smoke test" item, and decide whether `docs/dogfood-reports`-style output or just the driver's own returned summary is sufficient record.
 
-- `docs/plans/2026-07-06-001-feat-concurrent-multi-feature-fanout-plan.md` — this session's edits (the `lfg` decision closure above). Not yet committed — ask before committing per repo convention.
-- `docs/.governance/.by-source.json` (modified) and several new `docs/.governance/ExecutionTrace-*.json` / `Specification-*.json` files — governance hooks firing on this session's Read/Edit calls, same mechanism as before, working as designed. Harmless to commit alongside the plan update, or to leave for the next session to fold in.
-- This `handoff.md` edit itself.
+## Uncommitted state right now
+
+None — working tree is clean, everything is committed and pushed to the `feat/concurrent-fanout-driver` branch, PR #1 is open.
 
 ## Standing operating notes (already in memory, not repeating in full)
 
-Full detail lives in `/Users/wes/.claude/projects/-Users-wes-Developer-ce-plugin/memory/` — `MEMORY.md` is the index. Headlines: never hand-roll what a `ce-*` skill already does; never self-grade, dispatch an independent agent or verify directly; check `rm -f` globs before running them; verify external-doc (docx/brief) claims against actual source before trusting them.
+Full detail lives in `/Users/wes/.claude/projects/-Users-wes-Developer-ce-plugin/memory/` — `MEMORY.md` is the index. Headlines: never hand-roll what a `ce-*` skill already does; never self-grade, dispatch an independent agent or verify directly; check `rm -f` globs before running them; verify external-doc (docx/brief) claims against actual source before trusting them; when a design workaround exists only because of a limitation in a skill this fork owns, fix the skill at the source rather than routing around it.
