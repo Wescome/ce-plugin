@@ -64,6 +64,8 @@ Coverage is by surface, not skill enumeration — any new skill writing a govern
 
 **The symlink bug — a fail-open that mattered.** Root cause: `os.tmpdir()` returns `/var/folders/…` while `process.cwd()` resolves to `/private/var/…`; without `realpath`, `relative()` produced a `../`-prefixed path, `toRepoRel` fell back to basename, and `classifyPath` returned `null` — the emission hook silently no-op'd. A hook that quietly emits nothing is the worst failure mode for this system: it fails open. The fix (`realpathSync` on both sides) restores fail-closed behavior and is now INV-6.
 
+**The self-referential trace bug — found and fixed during this brief's own review.** `captureWorktree()` filtered `docs/.governance/` out of its post-hoc `files` list, but not out of the raw `git diff`/`--stat` calls feeding `diffSha`. Since every node write dirties the `.by-source.json` index, that self-write became the *next* turn's "diff" — a new `diffSha`, a new node id, a new `ExecutionTrace`, which dirtied the index again. Result: a new trace on every single turn regardless of whether anything else changed, directly contradicting the idempotency `test-governance.mjs` claims to assert ("no diff change ⇒ idempotent, no new trace") — that assertion held in the test's isolated fixture but not in the live repo, where the index itself is a tracked file. Fixed by excluding `docs/.governance` via git pathspec (`-- . ':!docs/.governance'`) in the `diff`/`status`/`stat` calls themselves, not just in the `files` list. Verified live: writing a node with the fix in place now correctly yields `files: []` *and* an empty `diff`/`stat` for the governance store's own churn, while still reporting real code changes.
+
 **Forced placement — why hooks, not the alternatives:**
 
 | Alternative | Why foreclosed |
@@ -76,7 +78,7 @@ Coverage is by surface, not skill enumeration — any new skill writing a govern
 
 | Check | Result |
 |---|---|
-| Smoke gate (`node hooks/test-governance.mjs`) | 22/22 assertions, all pass, exit 0 |
+| Smoke gate (`node hooks/test-governance.mjs`) | 23/23 assertions, all pass, exit 0 (re-run and re-counted directly; the docx's 22/22 was stale) |
 | Live harness (macOS, real login via pty) | Write → Specification node; Stop → ExecutionTrace node, on disk |
 | Dogfood via `/ce-compound` on the symlink bug | Learning + Hypothesis + Amendment + ExecutionTrace emitted automatically |
 | `governedBy` link | Heuristic (latest Specification); candidates recorded; **not** a guarantee |
