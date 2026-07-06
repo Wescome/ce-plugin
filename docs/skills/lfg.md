@@ -87,6 +87,7 @@ Direct invocation is useful for clear software tasks, but it gives the planner l
 |----------|--------|
 | _(empty)_ | Plans from current context, then runs the pipeline if the plan is eligible |
 | `<feature description>` | Passes the description to `/ce-plan`, then runs the pipeline |
+| `<path to an already-implementation-ready plan>` | Skips `/ce-plan` entirely and runs the pipeline directly from `/ce-work` — for a caller that already holds a ready plan (e.g. a batch/fan-out driver) and doesn't want a redundant `ce-plan` resume/deepening pass |
 
 Output: code changes, commits, and usually a PR. If there is no configured git remote, output is local commits only. If CI remains red after the bounded repair loop, unresolved failures are recorded durably before the run ends.
 
