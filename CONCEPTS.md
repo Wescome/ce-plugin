@@ -90,3 +90,14 @@ A configured origin of customer or user feedback — a Slack channel, a GitHub I
 
 ### Beta skill
 A parallel copy of a stable Skill, suffixed `-beta`, used to trial a new version alongside the stable one without disrupting users. Invoked manually (model auto-invocation is disabled); promoting it to stable is more than a rename — every caller must move in the same change so none silently inherits stale defaults, and the retired beta name must be registered for stale-artifact cleanup so upgrading users don't keep a dead duplicate of the skill alongside the promoted one.
+
+## Governance
+
+### Governance node
+An append-only JSON artifact recording one governed fact, written to the repo's governance store when a tracked write or turn-ending event is classified as one of a fixed set of types: `Specification`, `CandidateSet`, `Divergence`, `Learning`, `Verdict`, or `ExecutionTrace`. Identity is content-addressed, so writing the same content twice is a no-op rather than a duplicate node.
+
+### Specification
+The governance node type for a planning artifact — the node an `ExecutionTrace` links back to as the plan it most likely realizes.
+
+### ExecutionTrace
+The governance node type capturing a turn's tracked-file changes (branch, commit, changed files) once work has happened, linked to the most recent `Specification` as its `governedBy`.
