@@ -1,7 +1,6 @@
 ---
 name: lfg
 description: Run the full hands-off engineering pipeline from planning through a green PR.
-disable-model-invocation: true
 argument-hint: "[feature description]"
 ---
 
