@@ -22,9 +22,9 @@ This was proven live, not just unit-tested: a real `claude --plugin-dir` session
 
 ## 2. Governance layer, in full (per `BRIEF-FF-CE-GOVERNANCE-FORK-001`, corrected against the code)
 
-The paragraph above is the shape; this section is the design brief for the governance layer (v1.0, "Verified on-device (macOS)"), which grounds the fork in a broader initiative (FunctionFactory) that the plugin-architecture analysis alone doesn't capture. The docx brief itself is stale in a couple of places — corrected below against `lib/governance/node-id.ts`, the actual source of truth, rather than repeated as given.
+The paragraph above is the shape; this section is the design brief for the governance layer (v1.0, "Verified on-device (macOS)"). Its node/lineage format happens to match a separate personal project (FunctionFactory), but this fork is an independent artifact in its own right, not a disposable or dependent scaffold for that project. The docx brief itself is stale in a couple of places — corrected below against `lib/governance/node-id.ts`, the actual source of truth, rather than repeated as given.
 
-**Thesis.** A purely additive layer that makes the vendored plugin's durable outputs enter Factory lineage automatically — enforced by deterministic hooks that fire regardless of agent cooperation, not by prompt instructions a skill may skip.
+**Thesis.** A purely additive layer that makes the vendored plugin's durable outputs enter an append-only, content-addressed lineage format automatically — enforced by deterministic hooks that fire regardless of agent cooperation, not by prompt instructions a skill may skip.
 
 **Why this exists (SE-Onto diagnosis).** CE was diagnosed as a *Knowing-State Prosthesis* that satisfies externalization and continuous-maintenance but treats retrieval as advisory and leaves review non-blocking — fudging retrieval-enforcement and failing fail-closed coupling. It also breaks append-only, content-addressed lineage: learnings mutate in place and identity is a dated filename, not a content hash. The governance layer targets exactly those two gaps and nothing else — it is scoped to the fork's own additions (hooks, executable core, node model); CE's skills are untouched, no `SKILL.md` was edited, the `src/` converter is untouched, MIT is retained, nothing pruned.
 
