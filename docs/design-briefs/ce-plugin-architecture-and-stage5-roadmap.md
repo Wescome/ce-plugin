@@ -118,4 +118,40 @@ None of the following is wired into any `ce-*` skill today — this is available
 | **Direct multiple agents from anywhere** | `CronCreate` / `ScheduleWakeup` / `RemoteTrigger` | Scheduled or externally-triggered unattended runs — not tied to a developer having a terminal open. |
 | **Proactive improvement proposals** | Documented `Workflow` quality patterns: **completeness critic**, **loop-until-dry**, **judge panel** | These let an agent generate its *own* next round of work (e.g., "what's missing?" feeding the next iteration) instead of only executing a single human-issued instruction — the actual difference between Stage 4 ("does what I asked") and Stage 5 ("decides what's worth doing next"). |
 
-**The honest gap is integration, not invention.** Every primitive above already exists and was demonstrably used in this session (`Agent`/fork dispatch, `Monitor` for background-task tracking, a live `tmux`-driven Claude Code session). `ce-compound`'s Phase 1 already hand-rolls a parallel-dispatch pattern in prose inside its `SKILL.md` — it just does it as a single skill's internal research phase, not as a `Workflow`-orchestrated, cloud-executed, multi-feature fan-out. Closing the gap means a new skill (or an evolution of `ce-worktree`/`ce-dogfood`) that calls `Workflow` directly, targets `isolation: "remote"` for at least some legs, and is triggerable via `CronCreate`/`RemoteTrigger` rather than only by a developer typing a command.
+**The honest gap is integration, not invention.** Every primitive above already exists and was demonstrably used in this session (`Agent`/fork dispatch, `Monitor` for background-task tracking, a live `tmux`-driven Claude Code session). `ce-compound`'s Phase 1 already hand-rolls a parallel-dispatch pattern in prose inside its `SKILL.md` — it just does it as a single skill's internal research phase, not as a `Workflow`-orchestrated, cloud-executed, multi-feature fan-out. Closing the gap does **not** mean writing new skills or reimplementing what `ce-worktree`/`ce-dogfood`/`ce-work` already do — it means a thin `Workflow` script whose only job is to dispatch the *existing* 29 skills as `agent()` calls, targeting `isolation: "remote"` for at least some legs, and triggerable via `CronCreate`/`RemoteTrigger` rather than only by a developer typing a command.
+
+## 6. Implementation roadmap to Stage 5
+
+Sequenced, not parallel — each phase's verification gate is the entry condition for the next. **No hand-rolled orchestration logic that duplicates an existing skill.** The 29 skills already in this plugin (`ce-plan`, `ce-work`, `ce-simplify-code`, `ce-code-review`, `ce-compound`, `ce-dogfood`, `ce-product-pulse`, `ce-ideate`, etc.) are the units of work; a `Workflow` script's only job in every phase below is to call them as `agent()` invocations and let `Workflow`'s own `isolation`/`pipeline`/`parallel` primitives do the fan-out. `ce-worktree` itself doesn't need to change — `Workflow`'s `isolation: "worktree"` on each `agent()` call already gives one worktree per item, which is the same guarantee `ce-worktree` provides for a single branch today, just parameterized across a list instead of hand-run once.
+
+### Phase 1 — Multi-feature fan-out, still local
+
+**Build.** A `Workflow` script that takes a list of ready `Specification` nodes (or plan files under `docs/plans/`) and, for each one, runs a `pipeline()` of `agent()` calls invoking the existing chain verbatim — `ce-plan` (if not already enriched) → `ce-work` → `ce-simplify-code` → `ce-code-review` → `ce-compound` — with `isolation: "worktree"` on the `ce-work` leg so each item gets its own worktree automatically. No new skill, no reimplementation of `ce-worktree`'s logic — the script is pure dispatch.
+
+**Real blocker, not glossed over.** `latestSpecification()` in `core.mjs` (verified by reading it directly) picks the most-recent `Specification` by `createdAt` **repo-wide** — it scans every `Specification-*.json` file and takes the newest, with no branch or worktree scoping at all. That heuristic breaks the moment two worktrees are building against two different Specifications concurrently: each worktree's `ExecutionTrace` would attribute to whichever Specification is globally newest, not the one actually being worked in that worktree. This needs to become an explicit pass-through (the fan-out driver hands each worktree its target Specification id) rather than an inferred one, before Phase 1 can ship.
+
+**Second wrinkle.** `docs/.governance/.by-source.json` is a single JSON object, and `saveIndex()` writes it via `JSON.stringify(idx, null, 2)` with keys in insertion order, not sorted. Two branches each appending a different `sourceKey` will edit the same region of that file and merge-conflict when reconciled back to `main` — not a semantic conflict (both edits are pure additions), but a real one `git merge` won't resolve automatically. Options: shard the index by source-key prefix, or accept manual, low-stakes conflict resolution as a v1 limitation.
+
+**Verification gate.** Two independent plans run through the fan-out concurrently, each lands its own commit/PR, and each `ExecutionTrace` links to *its own* Specification — not the other's.
+
+### Phase 2 — Cloud execution
+
+**Build.** Swap `isolation: "worktree"` for `isolation: "remote"` (`Agent({isolation: "remote"})`) on at least one leg of the Phase 1 fan-out.
+
+**Real blocker.** The governance hooks assume a local git checkout at a discoverable root — `resolveRoot()` shells out to `git rev-parse --show-toplevel` — and `hooks.json` resolves scripts via `${CLAUDE_PLUGIN_ROOT}`. A remote sandbox needs the plugin installed there too, and a real git repo at a resolvable root, or the hooks silently no-op — the exact fail-open class already found and fixed once for symlinked paths (INV-6).
+
+**Verification gate.** A remote-isolated agent's write to `docs/plans/` produces a `Specification` node whose `content` is byte-identical in shape to a local run's (ids will only differ if content differs).
+
+### Phase 3 — Direct-from-anywhere triggering
+
+**Build.** `CronCreate` or `RemoteTrigger` kicks off the Phase 1/2 fan-out unattended, selecting "ready to build" work by querying `docs/.governance` directly — a `Specification` node with no linked `ExecutionTrace` yet counts as unbuilt — instead of a developer typing a command.
+
+**Verification gate.** A scheduled run, with no terminal open, produces a real PR and a correctly linked `ExecutionTrace`/`Specification` pair.
+
+### Phase 4 — Proactive proposals
+
+**Build.** A `Workflow` script that calls the existing `/ce-product-pulse` (time-windowed usage/error report) and `/ce-ideate` (grounded idea generation, already codebase- and past-learnings-aware) as `agent()` invocations in sequence, feeding `ce-ideate` the open `Divergence` nodes and unresolved `refuted` `Verdict` nodes as its "what's missing" input instead of a human-typed prompt. Neither skill is modified — the only new thing is the driver that chains them and supplies the governance nodes as grounding.
+
+**Verification gate.** The agent proposes a next unit of work, grounded in evidence (specific `Divergence`/`Verdict` node ids cited, not a vague summary), without a human prompt in that turn.
+
+Each phase's gate is checked live, the same standard as INV-1 through INV-6 above: a claim only counts once it has actually been run and its output inspected — not when the primitive merely exists.
