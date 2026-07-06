@@ -12,6 +12,8 @@ const repo = mkdtempSync(join(tmpdir(), "gov-test-"))
 let fails = 0
 const ok = (c, m) => { if (!c) { console.error("FAIL:", m); fails++ } else console.log("ok:", m) }
 const gov = () => { try { return readdirSync(join(repo, "docs", ".governance")) } catch { return [] } }
+const govDir = (root) => { try { return readdirSync(join(root, "docs", ".governance")) } catch { return [] } }
+const shIn = (cwd, c) => execFileSync("bash", ["-c", c], { cwd, stdio: ["ignore","ignore","ignore"] })
 const run = (script, payload) => {
   try {
     execFileSync("node", [join(HOOKS, script)], { input: JSON.stringify(payload), cwd: repo, stdio: ["pipe","ignore","ignore"] })
@@ -119,28 +121,25 @@ rmSync(emptyRepo, { recursive: true, force: true })
 
 // 10. U2 — ExecutionTrace sourceKey is parameterized by branch, not one hardcoded constant
 const brepo = mkdtempSync(join(tmpdir(), "gov-branch-"))
-const bsh = (c) => execFileSync("bash", ["-c", c], { cwd: brepo, stdio: ["ignore","ignore","ignore"] })
-bsh("git init -q -b main && git config user.email t@t && git config user.name t && echo base > app.js && git add -A && git commit -qm base")
+shIn(brepo, "git init -q -b main && git config user.email t@t && git config user.name t && echo base > app.js && git add -A && git commit -qm base")
 mkdirSync(join(brepo, "docs", "plans"), { recursive: true })
 writeFileSync(join(brepo, "docs", "plans", "p.md"), "# Plan\nA\n")
 execFileSync("node", [join(HOOKS, "emit-governance.mjs")], { input: JSON.stringify({ tool_input: { file_path: join(brepo,"docs","plans","p.md") } }), cwd: brepo, stdio: ["pipe","ignore","ignore"] })
-const bgov = () => { try { return readdirSync(join(brepo, "docs", ".governance")) } catch { return [] } }
-bsh("git checkout -qb worktree-a && echo a >> app.js")
+shIn(brepo, "git checkout -qb worktree-a && echo a >> app.js")
 execFileSync("node", [join(HOOKS, "emit-trace.mjs")], { cwd: brepo, stdio: ["ignore","ignore","ignore"] })
-bsh("git checkout main -q && git checkout -qb worktree-b && echo b >> app.js")
+shIn(brepo, "git checkout main -q && git checkout -qb worktree-b && echo b >> app.js")
 execFileSync("node", [join(HOOKS, "emit-trace.mjs")], { cwd: brepo, stdio: ["ignore","ignore","ignore"] })
 const bidx = JSON.parse(readFileSync(join(brepo, "docs", ".governance", ".by-source.json"), "utf8"))
 ok(bidx["#worktree:worktree-a"] && bidx["#worktree:worktree-b"] && bidx["#worktree:worktree-a"] !== bidx["#worktree:worktree-b"],
   "U2: two branches -> two distinct #worktree:<branch> keys, no collision")
-ok(bgov().filter(f => f.startsWith("ExecutionTrace-")).length === 2, "U2: each branch produced its own ExecutionTrace node (no overwrite)")
+ok(govDir(brepo).filter(f => f.startsWith("ExecutionTrace-")).length === 2, "U2: each branch produced its own ExecutionTrace node (no overwrite)")
 rmSync(brepo, { recursive: true, force: true })
 
 // 11. U3 — .ce-fanout-plan marker file: emit-trace.mjs reads it to resolve the right
 // Specification. Marker-absent behavior is unchanged (already exercised in section 4:
 // no marker there, correctly falls back to latestSpecification()).
 const mrepo = mkdtempSync(join(tmpdir(), "gov-marker-"))
-const msh = (c) => execFileSync("bash", ["-c", c], { cwd: mrepo, stdio: ["ignore","ignore","ignore"] })
-msh("git init -q -b main && git config user.email t@t && git config user.name t && echo base > app.js && git add -A && git commit -qm base")
+shIn(mrepo, "git init -q -b main && git config user.email t@t && git config user.name t && echo base > app.js && git add -A && git commit -qm base")
 mkdirSync(join(mrepo, "docs", "plans"), { recursive: true })
 const mPlanA = join(mrepo, "docs", "plans", "m-a.md")
 const mPlanB = join(mrepo, "docs", "plans", "m-b.md")
@@ -151,24 +150,23 @@ execFileSync("node", [join(HOOKS, "emit-governance.mjs")], { input: JSON.stringi
 const mIdx = JSON.parse(readFileSync(join(mrepo, "docs", ".governance", ".by-source.json"), "utf8"))
 const mSpecA = mIdx["docs/plans/m-a.md"]
 const mSpecB = mIdx["docs/plans/m-b.md"]
-const mgov = () => { try { return readdirSync(join(mrepo, "docs", ".governance")) } catch { return [] } }
 
 // Happy path: marker points at plan A (not the newest, B) -> trace should link to A
 writeFileSync(join(mrepo, ".ce-fanout-plan"), "docs/plans/m-a.md\n")
-msh("echo change >> app.js")
+shIn(mrepo, "echo change >> app.js")
 execFileSync("node", [join(HOOKS, "emit-trace.mjs")], { cwd: mrepo, stdio: ["ignore","ignore","ignore"] })
-const mtrace1 = mgov().filter(f => f.startsWith("ExecutionTrace-")).map(f => JSON.parse(readFileSync(join(mrepo,"docs",".governance",f))))[0]
+const mtrace1 = govDir(mrepo).filter(f => f.startsWith("ExecutionTrace-")).map(f => JSON.parse(readFileSync(join(mrepo,"docs",".governance",f))))[0]
 ok(mtrace1.content.governedBy === mSpecA, "U3: marker file present -> ExecutionTrace links to the marker's plan (A), not the newest (B)")
 
 // Edge: marker points at a path with no governed entry yet (race) -> falls back, no crash
 writeFileSync(join(mrepo, ".ce-fanout-plan"), "docs/plans/not-yet-governed.md\n")
-msh("echo change2 >> app.js")
+shIn(mrepo, "echo change2 >> app.js")
 const raceExit = (() => {
   try { execFileSync("node", [join(HOOKS, "emit-trace.mjs")], { cwd: mrepo, stdio: ["ignore","ignore","ignore"] }); return 0 }
   catch (e) { return e.status ?? 1 }
 })()
 ok(raceExit === 0, "U3: marker points at an ungoverned path (race) -> hook still exits 0, doesn't crash")
-const mtraces2 = mgov().filter(f => f.startsWith("ExecutionTrace-")).map(f => JSON.parse(readFileSync(join(mrepo,"docs",".governance",f))))
+const mtraces2 = govDir(mrepo).filter(f => f.startsWith("ExecutionTrace-")).map(f => JSON.parse(readFileSync(join(mrepo,"docs",".governance",f))))
 const mLatestTrace = mtraces2.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))[0]
 ok(mLatestTrace.content.governedBy === mSpecB, "U3: ungoverned marker path falls back to latestSpecification() gracefully")
 rmSync(mrepo, { recursive: true, force: true })

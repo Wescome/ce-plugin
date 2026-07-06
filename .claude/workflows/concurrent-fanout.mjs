@@ -6,12 +6,12 @@ export const meta = {
   ],
 }
 
-// R4: v1 targets a small, explicit caller-supplied list — no auto-discovery of what's
+// v1 targets a small, explicit caller-supplied list — no auto-discovery of what's
 // "ready" in docs/plans/. Items may be a docs/plans/ path or a Specification id; this
-// script has no filesystem access at all (confirmed empirically — see the plan's U4
-// spike), so it cannot resolve an id to a path itself. That resolution, and every other
-// piece of real work, is delegated into the dispatched agent's own prompt below — this
-// script does dispatch, argument construction, and result collection only (R3).
+// script has no filesystem access at all (confirmed empirically), so it cannot resolve
+// an id to a path itself. That resolution, and every other piece of real work, is
+// delegated into the dispatched agent's own prompt below — this script does dispatch,
+// argument construction, and result collection only.
 const items = args
 if (!Array.isArray(items) || items.length === 0) {
   throw new Error(
@@ -68,7 +68,12 @@ const dispatches = items.map((item) => () => agent(
   { label: `fanout:${item}`, phase: 'Fan-out dispatch', isolation: 'worktree', schema: ITEM_RESULT_SCHEMA }
 ))
 
-const results = (await parallel(dispatches)).filter(Boolean)
+// A dispatch resolves to null when the harness skips or kills the agent — surface that
+// as an explicit "errored" result per item rather than silently dropping it, so the
+// item count the caller sees always reconciles with items.length.
+const results = (await parallel(dispatches)).map((r, i) => r ?? {
+  status: 'errored', planPath: items[i], summary: 'Dispatch produced no result (agent skipped or killed).',
+})
 
 const shipped = results.filter(r => r.status === 'shipped')
 const blocked = results.filter(r => r.status === 'blocked')
