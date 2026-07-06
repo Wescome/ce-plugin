@@ -1,0 +1,20 @@
+{
+  "id": "ExecutionTrace:411c19e370758048c3316e8eb7a0aff4",
+  "type": "ExecutionTrace",
+  "sourceKey": "#worktree",
+  "createdAt": "2026-07-06T14:10:41.490Z",
+  "content": {
+    "branch": "main",
+    "head": "d3f35297adccea3ad8735e988253966ffa8cf74c",
+    "files": [
+      "CONCEPTS.md",
+      "docs/solutions/logic-errors/",
+      "hooks/",
+      "lib/"
+    ],
+    "diffSha": "blob:8178659472c12a525db232c49abed8b9",
+    "stat": "CONCEPTS.md | 11 +++++++++++\n 1 file changed, 11 insertions(+)",
+    "governedBy": null,
+    "governedByCandidates": []
+  }
+}

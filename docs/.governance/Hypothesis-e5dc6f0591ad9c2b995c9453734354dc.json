@@ -1,0 +1,12 @@
+{
+  "id": "Hypothesis:e5dc6f0591ad9c2b995c9453734354dc",
+  "type": "Hypothesis",
+  "sourceKey": "docs/solutions/logic-errors/governance-hook-macos-tmpdir-symlink-path-mismatch.md#hypothesis",
+  "createdAt": "2026-07-06T14:09:23.916Z",
+  "content": {
+    "source": "docs/solutions/logic-errors/governance-hook-macos-tmpdir-symlink-path-mismatch.md",
+    "problemType": "logic_error",
+    "rootCause": "`classifyPath()` only matches paths containing substrings like `docs/plans/`, `docs/ideation/`, `docs/solutions/`, etc. Before the fix, whenever `root` and `p` disagreed on the `/var` vs `/private/var` prefix, `path.relative()` computed the distance between two different-looking absolute trees and produced a `../..`-laden result; `toRepoRel` treated any leading `..` as \"outside the repo\" and collapsed the value to `basename(p)` — a bare filename with no directory structure at all, which can never contain a `docs/` prefix. Realpath-normalizing both `root` and the resolved absolute path *before* calling `relative()` means both operands describe the same canonical tree, so genuinely in-repo tool-provided paths (even ones whose absolute form traversed a symlinked tmpdir) resolve to a real repo-relative path like `docs/plans/foo.md`, and `classifyPath` matches as expected.\n\nThe `realpath()` helper's `ENOENT` fallback (return the original path rather than throwing) is a deliberate fail-open design: if a file is mid-write and not yet flushed to disk when the hook runs, `realpathSync` would throw, and the helper must not let a transient timing race crash a `PostToolUse` hook that fires on every Write/Edit.",
+    "learning": "Learning:ca6b609c40674c9a846ec88fc22e0e60"
+  }
+}
