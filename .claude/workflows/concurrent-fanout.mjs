@@ -19,6 +19,20 @@ if (!Array.isArray(items) || items.length === 0) {
     'e.g. Workflow({ name: "concurrent-fanout", args: ["docs/plans/a.md", "docs/plans/b.md"] })'
   )
 }
+// Reject literal-duplicate items: two dispatches resolving to the same plan path each run
+// ce-plan/lfg independently and each write a different freshly-generated Specification id
+// under the same .by-source.json key, producing a real add/add merge conflict on
+// reconciliation (reproduced live). This only catches literal-string duplicates, not a
+// path aliased with the Specification id that resolves to the same path — the script has
+// no filesystem access to resolve that itself (see the id-vs-path note below), so that
+// narrower aliasing case is an accepted v1 gap, not fixed here.
+if (new Set(items).size !== items.length) {
+  throw new Error('concurrent-fanout: args contains duplicate items — each item must resolve to a distinct plan')
+}
+const MAX_FANOUT_ITEMS = 20
+if (items.length > MAX_FANOUT_ITEMS) {
+  throw new Error(`concurrent-fanout: ${items.length} items exceeds the ${MAX_FANOUT_ITEMS}-item cap for a single run`)
+}
 
 phase('Fan-out dispatch')
 log(`Dispatching ${items.length} item(s) concurrently via lfg, each in its own worktree`)
@@ -58,19 +72,26 @@ const dispatches = items.map((item) => () => agent(
   `ready plan, or any other explicit stop condition it reported — not a hang.\n` +
   `  - "errored": something failed outside lfg's own contract (e.g. a tool error, an exception, lfg itself could ` +
   `not be invoked).\n\n` +
-  `Step 5 — If and only if the outcome is "shipped", invoke the "ce-compound" skill to capture any durable ` +
-  `learning from this item's work. If ce-compound finds nothing worth capturing, that is a valid outcome — do not ` +
-  `force a learning that isn't there. Do not invoke ce-compound for "blocked" or "errored" outcomes.\n\n` +
+  `Step 5 — If and only if the outcome is "shipped", invoke the "ce-compound" skill with argument "mode:headless" ` +
+  `to capture any durable learning from this item's work. The mode:headless argument is required — you are running ` +
+  `unattended with no human present, and ce-compound's default mode blocks on an interactive question. If ` +
+  `ce-compound finds nothing worth capturing, that is a valid outcome — do not force a learning that isn't there. ` +
+  `Do not invoke ce-compound for "blocked" or "errored" outcomes. A ce-compound failure does not change the ` +
+  `item's status — if lfg already reported a successful ship, the status stays "shipped" regardless of what ` +
+  `happens in this step; note the capture failure in the summary instead.\n\n` +
   `Step 6 — Report back via the required structured output: status, the resolved planPath, a summary paragraph ` +
   `describing exactly what lfg (and ce-compound, if invoked) reported — including the PR URL if one was opened and ` +
   `the branch you ended up on. Relay lfg's own terminal report faithfully; do not substitute your own judgment ` +
   `about whether the outcome is acceptable.`,
   { label: `fanout:${item}`, phase: 'Fan-out dispatch', isolation: 'worktree', schema: ITEM_RESULT_SCHEMA }
-))
+).catch((e) => ({
+  status: 'errored', planPath: item, summary: `Dispatch threw before returning a structured result: ${e?.message ?? e}`,
+})))
 
-// A dispatch resolves to null when the harness skips or kills the agent — surface that
-// as an explicit "errored" result per item rather than silently dropping it, so the
-// item count the caller sees always reconciles with items.length.
+// A dispatch resolves to null when the harness skips or kills the agent (distinct from a
+// thrown/rejected agent() call, caught above) — surface that as an explicit "errored"
+// result per item rather than silently dropping it, so the item count the caller sees
+// always reconciles with items.length.
 const results = (await parallel(dispatches)).map((r, i) => r ?? {
   status: 'errored', planPath: items[i], summary: 'Dispatch produced no result (agent skipped or killed).',
 })

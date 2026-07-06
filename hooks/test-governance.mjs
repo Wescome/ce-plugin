@@ -11,8 +11,7 @@ const HOOKS = import.meta.dirname
 const repo = mkdtempSync(join(tmpdir(), "gov-test-"))
 let fails = 0
 const ok = (c, m) => { if (!c) { console.error("FAIL:", m); fails++ } else console.log("ok:", m) }
-const gov = () => { try { return readdirSync(join(repo, "docs", ".governance")) } catch { return [] } }
-const govDir = (root) => { try { return readdirSync(join(root, "docs", ".governance")) } catch { return [] } }
+const gov = (root = repo) => { try { return readdirSync(join(root, "docs", ".governance")) } catch { return [] } }
 const shIn = (cwd, c) => execFileSync("bash", ["-c", c], { cwd, stdio: ["ignore","ignore","ignore"] })
 const run = (script, payload) => {
   try {
@@ -115,6 +114,11 @@ ok(u1SpecA && u1SpecB && u1SpecA !== u1SpecB, "U1 setup: two distinct governed p
 ok(latestSpecification(repo).governedBy === u1SpecB, "U1 setup: latestSpecification() picks the newest (B) — a naive lookup would pick the wrong plan")
 ok(resolveSpecification(repo, "docs/plans/u1-a.md").governedBy === u1SpecA, "U1: path-keyed resolver returns A's own spec, not the newest (B)")
 ok(resolveSpecification(repo, "docs/plans/does-not-exist.md").governedBy === u1SpecB, "U1: ungoverned path falls back to latestSpecification()")
+const u1IdxPath = join(repo, "docs", ".governance", ".by-source.json")
+u1Idx["docs/plans/u1-wrong-type.md"] = "ExecutionTrace:not-a-spec-id"
+writeFileSync(u1IdxPath, JSON.stringify(u1Idx))
+ok(resolveSpecification(repo, "docs/plans/u1-wrong-type.md").governedBy === u1SpecB,
+  "U1: a governed entry that isn't a Specification id falls back to latestSpecification() rather than returning the mismatched id")
 const emptyRepo = mkdtempSync(join(tmpdir(), "gov-empty-"))
 ok(resolveSpecification(emptyRepo, "docs/plans/x.md").governedBy === null, "U1: no .by-source.json at all falls back gracefully (no crash)")
 rmSync(emptyRepo, { recursive: true, force: true })
@@ -132,7 +136,7 @@ execFileSync("node", [join(HOOKS, "emit-trace.mjs")], { cwd: brepo, stdio: ["ign
 const bidx = JSON.parse(readFileSync(join(brepo, "docs", ".governance", ".by-source.json"), "utf8"))
 ok(bidx["#worktree:worktree-a"] && bidx["#worktree:worktree-b"] && bidx["#worktree:worktree-a"] !== bidx["#worktree:worktree-b"],
   "U2: two branches -> two distinct #worktree:<branch> keys, no collision")
-ok(govDir(brepo).filter(f => f.startsWith("ExecutionTrace-")).length === 2, "U2: each branch produced its own ExecutionTrace node (no overwrite)")
+ok(gov(brepo).filter(f => f.startsWith("ExecutionTrace-")).length === 2, "U2: each branch produced its own ExecutionTrace node (no overwrite)")
 rmSync(brepo, { recursive: true, force: true })
 
 // 11. U3 — .ce-fanout-plan marker file: emit-trace.mjs reads it to resolve the right
@@ -155,7 +159,7 @@ const mSpecB = mIdx["docs/plans/m-b.md"]
 writeFileSync(join(mrepo, ".ce-fanout-plan"), "docs/plans/m-a.md\n")
 shIn(mrepo, "echo change >> app.js")
 execFileSync("node", [join(HOOKS, "emit-trace.mjs")], { cwd: mrepo, stdio: ["ignore","ignore","ignore"] })
-const mtrace1 = govDir(mrepo).filter(f => f.startsWith("ExecutionTrace-")).map(f => JSON.parse(readFileSync(join(mrepo,"docs",".governance",f))))[0]
+const mtrace1 = gov(mrepo).filter(f => f.startsWith("ExecutionTrace-")).map(f => JSON.parse(readFileSync(join(mrepo,"docs",".governance",f))))[0]
 ok(mtrace1.content.governedBy === mSpecA, "U3: marker file present -> ExecutionTrace links to the marker's plan (A), not the newest (B)")
 
 // Edge: marker points at a path with no governed entry yet (race) -> falls back, no crash
@@ -166,7 +170,7 @@ const raceExit = (() => {
   catch (e) { return e.status ?? 1 }
 })()
 ok(raceExit === 0, "U3: marker points at an ungoverned path (race) -> hook still exits 0, doesn't crash")
-const mtraces2 = govDir(mrepo).filter(f => f.startsWith("ExecutionTrace-")).map(f => JSON.parse(readFileSync(join(mrepo,"docs",".governance",f))))
+const mtraces2 = gov(mrepo).filter(f => f.startsWith("ExecutionTrace-")).map(f => JSON.parse(readFileSync(join(mrepo,"docs",".governance",f))))
 const mLatestTrace = mtraces2.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))[0]
 ok(mLatestTrace.content.governedBy === mSpecB, "U3: ungoverned marker path falls back to latestSpecification() gracefully")
 rmSync(mrepo, { recursive: true, force: true })

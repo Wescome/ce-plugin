@@ -16,7 +16,14 @@ if (!cap) process.exit(0)
 // access to write one from outside. Absent/unreadable -> null -> emitExecutionTrace
 // falls back to its existing newest-Specification inference (fail-open, per KTD3).
 let planRelPath = null
-try { planRelPath = readFileSync(join(root, ".ce-fanout-plan"), "utf8").trim() || null } catch {}
+try {
+  planRelPath = readFileSync(join(root, ".ce-fanout-plan"), "utf8").trim() || null
+} catch (e) {
+  // ENOENT (no marker) is the expected, silent case. Anything else — permissions, a
+  // corrupt/unreadable file — is a systemic issue that would otherwise silently
+  // misattribute every subsequent trace in this worktree with no diagnostic at all.
+  if (e?.code !== "ENOENT") process.stderr.write(`[governance] .ce-fanout-plan unreadable (${e?.code ?? e}), falling back\n`)
+}
 
 const res = emitExecutionTrace(root, cap, planRelPath)
 process.stderr.write(
