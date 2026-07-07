@@ -1,0 +1,11 @@
+{
+  "id": "Specification:aa034b29e9bf6d6c630fb66c7c5d3828",
+  "type": "Specification",
+  "lineage": "Specification:a9c38d0e7c504f243fd565e54d15b94d",
+  "sourceKey": "docs/plans/2026-07-07-001-feat-fanout-smoke-grep-plan.md",
+  "createdAt": "2026-07-07T00:38:40.887Z",
+  "content": {
+    "source": "docs/plans/2026-07-07-001-feat-fanout-smoke-grep-plan.md",
+    "sha": "blob:450e79392502270cbde1dfb3771f05ff"
+  }
+}
