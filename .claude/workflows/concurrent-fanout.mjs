@@ -12,7 +12,16 @@ export const meta = {
 // an id to a path itself. That resolution, and every other piece of real work, is
 // delegated into the dispatched agent's own prompt below — this script does dispatch,
 // argument construction, and result collection only.
-const items = args
+// Some hosts deliver `args` JSON-stringified rather than as a live array/object
+// (observed empirically) — parse defensively rather than trusting the declared type.
+let items = args
+if (typeof items === 'string') {
+  try {
+    items = JSON.parse(items)
+  } catch {
+    throw new Error(`concurrent-fanout: args was a string but not valid JSON: ${items}`)
+  }
+}
 if (!Array.isArray(items) || items.length === 0) {
   throw new Error(
     'concurrent-fanout requires args: an array of docs/plans/ paths (or Specification ids) to dispatch, ' +
